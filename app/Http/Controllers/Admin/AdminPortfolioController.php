@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Portfolio;
 use App\Models\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminPortfolioController extends Controller
 {
@@ -25,18 +26,25 @@ class AdminPortfolioController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'image_url' => 'required|string|max:500',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image_url' => 'nullable|required_without:image|string|max:500',
             'service_id' => 'nullable|exists:services,id',
             'description' => 'nullable|string',
             'is_featured' => 'boolean',
             'sort_order' => 'integer',
         ]);
 
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('portfolios', 'public');
+            $validated['image_url'] = 'storage/' . $path;
+        }
+
+        unset($validated['image']);
         $portfolio = Portfolio::create($validated);
 
         return response()->json([
             'message' => 'Portfolio created successfully',
-            'portfolio' => $portfolio,
+            'portfolio' => $portfolio->load('service'),
         ], 201);
     }
 
@@ -51,27 +59,43 @@ class AdminPortfolioController extends Controller
 
     public function update(Request $request, $id)
     {
+        $portfolio = Portfolio::findOrFail($id);
+
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
-            'image_url' => 'sometimes|string|max:500',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image_url' => 'nullable|string|max:500',
             'service_id' => 'nullable|exists:services,id',
             'description' => 'nullable|string',
             'is_featured' => 'boolean',
             'sort_order' => 'integer',
         ]);
 
-        $portfolio = Portfolio::findOrFail($id);
+        if ($request->hasFile('image')) {
+            if ($portfolio->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $portfolio->image_url))) {
+                Storage::disk('public')->delete(str_replace('storage/', '', $portfolio->image_url));
+            }
+            $path = $request->file('image')->store('portfolios', 'public');
+            $validated['image_url'] = 'storage/' . $path;
+        }
+
+        unset($validated['image']);
         $portfolio->update($validated);
 
         return response()->json([
             'message' => 'Portfolio updated successfully',
-            'portfolio' => $portfolio->fresh(),
+            'portfolio' => $portfolio->fresh()->load('service'),
         ]);
     }
 
     public function destroy($id)
     {
         $portfolio = Portfolio::findOrFail($id);
+
+        if ($portfolio->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $portfolio->image_url))) {
+            Storage::disk('public')->delete(str_replace('storage/', '', $portfolio->image_url));
+        }
+
         $portfolio->delete();
 
         return response()->json([

@@ -35,9 +35,9 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('orders')->group(function () {
-        Route::post('/', [OrderController::class, 'store']);
+        Route::post('/', [OrderController::class, 'store'])->middleware('auth:sanctum');
         Route::get('track', [OrderController::class, 'track']);
-        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
+        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode'])->middleware('auth:sanctum');
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('{id}', [OrderController::class, 'show'])->middleware('auth:sanctum');
     });
@@ -85,3 +85,4 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+

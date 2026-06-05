@@ -29,7 +29,6 @@ class OrderController extends Controller
             'items.*.design_type' => 'nullable|in:ai_generated,uploaded',
             'items.*.design_id' => 'nullable|exists:designs,id',
             'items.*.design_notes' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
         ]);
 
         DB::beginTransaction();
@@ -45,6 +44,9 @@ class OrderController extends Controller
             $shippingCost = $validated['delivery_method'] === 'delivery' ? 15000 : 0;
             $totalPrice = $subtotal + $shippingCost;
 
+            // Auto-assign user_id if authenticated
+            $userId = $request->user()?->id;
+
             $order = Order::create([
                 'order_code' => $orderCode,
                 'customer_name' => $validated['customer_name'],
@@ -57,7 +59,7 @@ class OrderController extends Controller
                 'total_price' => $totalPrice,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'waiting_payment',
-                'user_id' => $validated['user_id'] ?? null,
+                'user_id' => $userId,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -132,10 +134,18 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $order = Order::with(['items.service', 'items.design', 'payments', 'user'])
             ->findOrFail($id);
+
+        // Ownership check: only order owner or admin can view
+        $user = $request->user();
+        if ($user && !$user->isAdmin() && $order->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only view your own orders.',
+            ], 403);
+        }
 
         return response()->json([
             'order' => $order,
