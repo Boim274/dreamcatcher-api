@@ -20,6 +20,7 @@ Route::prefix('v1')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
         Route::get('me', [AuthController::class, 'me'])->middleware('auth:sanctum');
         Route::put('profile', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+        Route::put('password', [AuthController::class, 'updatePassword'])->middleware('auth:sanctum');
     });
 
     Route::prefix('services')->group(function () {
@@ -35,9 +36,9 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('orders')->group(function () {
-        Route::post('/', [OrderController::class, 'store'])->middleware('auth:sanctum');
+        Route::post('/', [OrderController::class, 'store']);
         Route::get('track', [OrderController::class, 'track']);
-        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode'])->middleware('auth:sanctum');
+        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('{id}', [OrderController::class, 'show'])->middleware('auth:sanctum');
     });

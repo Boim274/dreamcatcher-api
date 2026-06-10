@@ -27,7 +27,17 @@ class AdminServiceController extends Controller
             'minimum_order' => 'required|integer|min:1',
             'thumbnail' => 'nullable|string|max:500',
             'is_active' => 'boolean',
+            'pricing_type' => 'required|in:flat,tiered',
+            'pricing_config' => 'nullable|array',
+            'options_config' => 'nullable|array',
         ]);
+
+        if (isset($validated['pricing_config']) && is_array($validated['pricing_config'])) {
+            $validated['pricing_config'] = json_encode($validated['pricing_config']);
+        }
+        if (isset($validated['options_config']) && is_array($validated['options_config'])) {
+            $validated['options_config'] = json_encode($validated['options_config']);
+        }
 
         $service = Service::create($validated);
 
@@ -56,7 +66,17 @@ class AdminServiceController extends Controller
             'minimum_order' => 'sometimes|integer|min:1',
             'thumbnail' => 'nullable|string|max:500',
             'is_active' => 'boolean',
+            'pricing_type' => 'sometimes|in:flat,tiered',
+            'pricing_config' => 'nullable|array',
+            'options_config' => 'nullable|array',
         ]);
+
+        if (isset($validated['pricing_config']) && is_array($validated['pricing_config'])) {
+            $validated['pricing_config'] = json_encode($validated['pricing_config']);
+        }
+        if (isset($validated['options_config']) && is_array($validated['options_config'])) {
+            $validated['options_config'] = json_encode($validated['options_config']);
+        }
 
         $service = Service::findOrFail($id);
         $service->update($validated);

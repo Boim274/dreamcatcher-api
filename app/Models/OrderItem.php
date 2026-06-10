@@ -20,6 +20,7 @@ class OrderItem extends Model
         'design_type',
         'design_id',
         'design_notes',
+        'selected_color',
     ];
 
     protected $casts = [

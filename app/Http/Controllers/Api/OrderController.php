@@ -22,10 +22,13 @@ class OrderController extends Controller
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.service_id' => 'required|exists:services,id',
-            'items.*.product_name' => 'required|string|max:255',
+            'items.*.product_name' => 'nullable|string|max:255',
             'items.*.size' => 'nullable|string|max:50',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.selected_color' => 'nullable|string|max:50',
+            'items.*.sablon_type' => 'nullable|string|max:50',
+            'items.*.service_option' => 'nullable|string|max:255',
             'items.*.design_type' => 'nullable|in:ai_generated,uploaded',
             'items.*.design_id' => 'nullable|exists:designs,id',
             'items.*.design_notes' => 'nullable|string',
@@ -44,8 +47,14 @@ class OrderController extends Controller
             $shippingCost = $validated['delivery_method'] === 'delivery' ? 15000 : 0;
             $totalPrice = $subtotal + $shippingCost;
 
-            // Auto-assign user_id if authenticated
-            $userId = $request->user()?->id;
+            // Optional auth: resolve user from token if present
+            $userId = null;
+            if ($request->bearerToken()) {
+                $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
+                if ($token) {
+                    $userId = $token->tokenable->id;
+                }
+            }
 
             $order = Order::create([
                 'order_code' => $orderCode,
@@ -66,11 +75,12 @@ class OrderController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'service_id' => $item['service_id'],
-                    'product_name' => $item['product_name'],
+                    'product_name' => $item['product_name'] ?? $item['service_id'],
                     'size' => $item['size'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['unit_price'] * $item['quantity'],
+                    'selected_color' => $item['selected_color'] ?? null,
                     'design_type' => $item['design_type'] ?? 'uploaded',
                     'design_id' => $item['design_id'] ?? null,
                     'design_notes' => $item['design_notes'] ?? null,
@@ -139,7 +149,6 @@ class OrderController extends Controller
         $order = Order::with(['items.service', 'items.design', 'payments', 'user'])
             ->findOrFail($id);
 
-        // Ownership check: only order owner or admin can view
         $user = $request->user();
         if ($user && !$user->isAdmin() && $order->user_id !== $user->id) {
             return response()->json([
