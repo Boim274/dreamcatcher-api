@@ -13,16 +13,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin Dreamcatcher',
-            'email' => 'admin@dreamcatcher.id',
-            'password' => Hash::make('password123'),
-            'role' => 'admin',
-            'phone' => '081234567890',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@dreamcatcher.id'],
+            [
+                'name' => 'Admin Dreamcatcher',
+                'password' => Hash::make('password123'),
+                'role' => 'admin',
+                'phone' => '081234567890',
+            ]
+        );
 
-        DB::table('portfolios')->delete();
-        DB::table('services')->delete();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::table('portfolios')->truncate();
+        DB::table('services')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $services = [
             [
