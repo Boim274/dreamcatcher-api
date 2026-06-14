@@ -26,9 +26,7 @@ class ImgBBService
         try {
             $base64 = base64_encode(file_get_contents($file->getRealPath()));
 
-            $response = Http::attach(
-                'image', file_get_contents($file->getRealPath()), $file->getClientOriginalName()
-            )->post($this->uploadUrl, [
+            $response = Http::post($this->uploadUrl, [
                 'key' => $this->apiKey,
                 'image' => $base64,
             ]);
