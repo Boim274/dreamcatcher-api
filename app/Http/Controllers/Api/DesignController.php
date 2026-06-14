@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Design;
 use App\Services\AIDesignService;
 use App\Services\DesignValidationService;
-use App\Services\FreeImageService;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -15,7 +15,7 @@ class DesignController extends Controller
     public function __construct(
         private AIDesignService $aiDesignService,
         private DesignValidationService $validationService,
-        private FreeImageService $freeImageService
+        private CloudinaryService $cloudinaryService
     ) {}
 
     public function generate(Request $request)
@@ -43,7 +43,7 @@ class DesignController extends Controller
         }
 
         $filename = 'design-' . Str::uuid() . '.png';
-        $imageUrl = $this->freeImageService->uploadFromContent($imageContent, $filename);
+        $imageUrl = $this->cloudinaryService->uploadFromContent($imageContent, $filename);
 
         if (!$imageUrl) {
             return response()->json([
@@ -81,7 +81,7 @@ class DesignController extends Controller
         ]);
 
         $file = $request->file('image');
-        $imageUrl = $this->freeImageService->upload($file);
+        $imageUrl = $this->cloudinaryService->upload($file);
 
         if (!$imageUrl) {
             return response()->json([
