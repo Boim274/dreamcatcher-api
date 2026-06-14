@@ -6,15 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Design;
 use App\Services\AIDesignService;
 use App\Services\DesignValidationService;
+use App\Services\ImgBBService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class DesignController extends Controller
 {
     public function __construct(
         private AIDesignService $aiDesignService,
-        private DesignValidationService $validationService
+        private DesignValidationService $validationService,
+        private ImgBBService $imgbbService
     ) {}
 
     public function generate(Request $request)
@@ -34,14 +35,28 @@ class DesignController extends Controller
             ], 500);
         }
 
-        $localPath = $this->downloadAndSaveImage($imageUrl);
+        $imageContent = @file_get_contents($imageUrl);
+        if ($imageContent === false) {
+            return response()->json([
+                'message' => 'Failed to download generated image.',
+            ], 500);
+        }
 
-        $validation = $this->validationService->validate($localPath);
+        $filename = 'design-' . Str::uuid() . '.png';
+        $imgbbUrl = $this->imgbbService->uploadFromContent($imageContent, $filename);
+
+        if (!$imgbbUrl) {
+            return response()->json([
+                'message' => 'Failed to upload design to storage.',
+            ], 500);
+        }
+
+        $validation = $this->validationService->validateFromUrl($imgbbUrl);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $validated['prompt'],
-            'image_url' => $localPath,
+            'image_url' => $imgbbUrl,
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],
@@ -65,18 +80,21 @@ class DesignController extends Controller
             'user_session' => 'nullable|string|max:255',
         ]);
 
-        $path = $request->file('image')->store('designs', 'public');
+        $file = $request->file('image');
+        $imgbbUrl = $this->imgbbService->upload($file);
 
-        $localPath = 'storage/' . $path;
+        if (!$imgbbUrl) {
+            return response()->json([
+                'message' => 'Failed to upload design to storage.',
+            ], 500);
+        }
 
-        $fullPath = storage_path('app/public/' . $path);
-
-        $validation = $this->validationService->validate($fullPath);
+        $validation = $this->validationService->validateFromUrl($imgbbUrl);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $request->prompt ?? null,
-            'image_url' => $localPath,
+            'image_url' => $imgbbUrl,
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],
@@ -106,15 +124,7 @@ class DesignController extends Controller
     {
         $design = Design::findOrFail($id);
 
-        if (!file_exists(storage_path('app/public/' . str_replace('storage/', '', $design->image_url)))) {
-            return response()->json([
-                'message' => 'Design image not found',
-            ], 404);
-        }
-
-        $fullPath = storage_path('app/public/' . str_replace('storage/', '', $design->image_url));
-
-        $validation = $this->validationService->validate($fullPath);
+        $validation = $this->validationService->validateFromUrl($design->image_url);
 
         $design->update([
             'color_count' => $validation['color_count'],
@@ -130,30 +140,5 @@ class DesignController extends Controller
             'design' => $design->fresh(),
             'validation' => $validation,
         ]);
-    }
-
-    private function downloadAndSaveImage(string $url): string
-    {
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => 30,
-                'follow_location' => true,
-            ],
-        ]);
-
-        $imageContent = @file_get_contents($url, false, $context);
-
-        if ($imageContent === false) {
-            return $url;
-        }
-
-        $filename = 'designs/' . Str::uuid() . '.png';
-        $path = Storage::disk('public')->put($filename, $imageContent);
-
-        if ($path) {
-            return 'storage/' . $filename;
-        }
-
-        return $url;
     }
 }

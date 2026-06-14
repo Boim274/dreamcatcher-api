@@ -10,6 +10,31 @@ class DesignValidationService
     private float $gradientThreshold = 0.1;
     private float $contrastMinThreshold = 50;
 
+    public function validateFromUrl(string $url): array
+    {
+        if (str_starts_with($url, 'data:') || !str_starts_with($url, 'http')) {
+            return $this->validate($url);
+        }
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'design_');
+
+        try {
+            $imageContent = @file_get_contents($url);
+            if ($imageContent === false) {
+                return $this->failValidation('Gagal mengunduh gambar dari URL');
+            }
+
+            file_put_contents($tempPath, $imageContent);
+            return $this->validate($tempPath);
+        } catch (\Exception $e) {
+            return $this->failValidation('Gagal memvalidasi gambar: ' . $e->getMessage());
+        } finally {
+            if (file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
+        }
+    }
+
     public function validate(string $imagePath): array
     {
         try {

@@ -21,6 +21,10 @@ return [
         'model' => env('OPENAI_MODEL', 'dall-e-3'),
     ],
 
+    'imgbb' => [
+        'key' => env('IMGBB_API_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

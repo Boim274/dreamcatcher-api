@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\ImgBBService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
+    public function __construct(
+        private ImgBBService $imgbbService
+    ) {}
+
     public function upload(Request $request)
     {
         $validated = $request->validate([
@@ -23,16 +27,15 @@ class PaymentController extends Controller
 
         $order = Order::findOrFail($validated['order_id']);
 
-        $paymentProofPath = null;
+        $paymentProofUrl = null;
         if ($request->hasFile('payment_proof')) {
-            $paymentProofPath = $request->file('payment_proof')->store('payments', 'public');
-            $paymentProofPath = 'storage/' . $paymentProofPath;
+            $paymentProofUrl = $this->imgbbService->upload($request->file('payment_proof'));
         }
 
         $payment = Payment::create([
             'order_id' => $validated['order_id'],
             'payment_method' => $validated['payment_method'],
-            'payment_proof' => $paymentProofPath,
+            'payment_proof' => $paymentProofUrl,
             'amount' => $validated['amount'],
             'payment_type' => $validated['payment_type'],
             'payment_status' => 'pending',
