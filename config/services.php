@@ -21,8 +21,8 @@ return [
         'model' => env('OPENAI_MODEL', 'dall-e-3'),
     ],
 
-    'imgbb' => [
-        'key' => env('IMGBB_API_KEY'),
+    'freeimage' => [
+        'key' => env('FREEIMAGE_API_KEY'),
     ],
 
     'slack' => [

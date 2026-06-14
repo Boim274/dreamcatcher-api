@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Design;
 use App\Services\AIDesignService;
 use App\Services\DesignValidationService;
-use App\Services\ImgBBService;
+use App\Services\FreeImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -15,7 +15,7 @@ class DesignController extends Controller
     public function __construct(
         private AIDesignService $aiDesignService,
         private DesignValidationService $validationService,
-        private ImgBBService $imgbbService
+        private FreeImageService $freeImageService
     ) {}
 
     public function generate(Request $request)
@@ -43,20 +43,20 @@ class DesignController extends Controller
         }
 
         $filename = 'design-' . Str::uuid() . '.png';
-        $imgbbUrl = $this->imgbbService->uploadFromContent($imageContent, $filename);
+        $imageUrl = $this->freeImageService->uploadFromContent($imageContent, $filename);
 
-        if (!$imgbbUrl) {
+        if (!$imageUrl) {
             return response()->json([
                 'message' => 'Failed to upload design to storage.',
             ], 500);
         }
 
-        $validation = $this->validationService->validateFromUrl($imgbbUrl);
+        $validation = $this->validationService->validateFromUrl($imageUrl);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $validated['prompt'],
-            'image_url' => $imgbbUrl,
+            'image_url' => $imageUrl,
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],
@@ -81,20 +81,20 @@ class DesignController extends Controller
         ]);
 
         $file = $request->file('image');
-        $imgbbUrl = $this->imgbbService->upload($file);
+        $imageUrl = $this->freeImageService->upload($file);
 
-        if (!$imgbbUrl) {
+        if (!$imageUrl) {
             return response()->json([
                 'message' => 'Failed to upload design to storage.',
             ], 500);
         }
 
-        $validation = $this->validationService->validateFromUrl($imgbbUrl);
+        $validation = $this->validationService->validateFromUrl($imageUrl);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $request->prompt ?? null,
-            'image_url' => $imgbbUrl,
+            'image_url' => $imageUrl,
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],

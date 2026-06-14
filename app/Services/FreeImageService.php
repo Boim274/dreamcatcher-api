@@ -6,20 +6,20 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class ImgBBService
+class FreeImageService
 {
     private string $apiKey;
-    private string $uploadUrl = 'https://api.imgbb.com/1/upload';
+    private string $uploadUrl = 'https://freeimage.host/api/1/upload';
 
     public function __construct()
     {
-        $this->apiKey = config('services.imgbb.key', '');
+        $this->apiKey = config('services.freeimage.key', '');
     }
 
     public function upload(UploadedFile $file): ?string
     {
         if (empty($this->apiKey)) {
-            Log::error('ImgBB API key not configured');
+            Log::error('FreeImage API key not configured');
             return null;
         }
 
@@ -28,18 +28,17 @@ class ImgBBService
 
             $response = Http::post($this->uploadUrl, [
                 'key' => $this->apiKey,
-                'image' => $base64,
+                'source' => $base64,
             ]);
 
             if ($response->successful()) {
-                $data = $response->json('data');
-                return $data['url'] ?? null;
+                return $response->json('image.url');
             }
 
-            Log::error('ImgBB upload failed', ['status' => $response->status(), 'body' => $response->body()]);
+            Log::error('FreeImage upload failed', ['status' => $response->status(), 'body' => $response->body()]);
             return null;
         } catch (\Exception $e) {
-            Log::error('ImgBB upload error: ' . $e->getMessage());
+            Log::error('FreeImage upload error: ' . $e->getMessage());
             return null;
         }
     }
@@ -47,7 +46,7 @@ class ImgBBService
     public function uploadFromContent(string $content, string $filename = 'image.png'): ?string
     {
         if (empty($this->apiKey)) {
-            Log::error('ImgBB API key not configured');
+            Log::error('FreeImage API key not configured');
             return null;
         }
 
@@ -56,19 +55,17 @@ class ImgBBService
 
             $response = Http::post($this->uploadUrl, [
                 'key' => $this->apiKey,
-                'image' => $base64,
-                'name' => pathinfo($filename, PATHINFO_FILENAME),
+                'source' => $base64,
             ]);
 
             if ($response->successful()) {
-                $data = $response->json('data');
-                return $data['url'] ?? null;
+                return $response->json('image.url');
             }
 
-            Log::error('ImgBB upload failed', ['status' => $response->status(), 'body' => $response->body()]);
+            Log::error('FreeImage upload failed', ['status' => $response->status(), 'body' => $response->body()]);
             return null;
         } catch (\Exception $e) {
-            Log::error('ImgBB upload error: ' . $e->getMessage());
+            Log::error('FreeImage upload error: ' . $e->getMessage());
             return null;
         }
     }

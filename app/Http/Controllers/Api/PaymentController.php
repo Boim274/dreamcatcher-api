@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
-use App\Services\ImgBBService;
+use App\Services\FreeImageService;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
     public function __construct(
-        private ImgBBService $imgbbService
+        private FreeImageService $freeImageService
     ) {}
 
     public function upload(Request $request)
@@ -29,7 +29,7 @@ class PaymentController extends Controller
 
         $paymentProofUrl = null;
         if ($request->hasFile('payment_proof')) {
-            $paymentProofUrl = $this->imgbbService->upload($request->file('payment_proof'));
+            $paymentProofUrl = $this->freeImageService->upload($request->file('payment_proof'));
         }
 
         $payment = Payment::create([
