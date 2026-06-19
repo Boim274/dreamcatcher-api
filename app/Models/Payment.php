@@ -13,6 +13,7 @@ class Payment extends Model
         'order_id',
         'payment_method',
         'payment_proof',
+        'cloudinary_public_id',
         'amount',
         'payment_type',
         'payment_status',

@@ -43,20 +43,21 @@ class DesignController extends Controller
         }
 
         $filename = 'design-' . Str::uuid() . '.png';
-        $imageUrl = $this->cloudinaryService->uploadFromContent($imageContent, $filename);
+        $uploadResult = $this->cloudinaryService->uploadFromContent($imageContent, $filename);
 
-        if (!$imageUrl) {
+        if (!$uploadResult) {
             return response()->json([
                 'message' => 'Failed to upload design to storage.',
             ], 500);
         }
 
-        $validation = $this->validationService->validateFromUrl($imageUrl);
+        $validation = $this->validationService->validateFromUrl($uploadResult['url']);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $validated['prompt'],
-            'image_url' => $imageUrl,
+            'image_url' => $uploadResult['url'],
+            'cloudinary_public_id' => $uploadResult['public_id'],
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],
@@ -81,20 +82,21 @@ class DesignController extends Controller
         ]);
 
         $file = $request->file('image');
-        $imageUrl = $this->cloudinaryService->upload($file);
+        $uploadResult = $this->cloudinaryService->upload($file);
 
-        if (!$imageUrl) {
+        if (!$uploadResult) {
             return response()->json([
                 'message' => 'Failed to upload design to storage.',
             ], 500);
         }
 
-        $validation = $this->validationService->validateFromUrl($imageUrl);
+        $validation = $this->validationService->validateFromUrl($uploadResult['url']);
 
         $design = Design::create([
             'user_session' => $validated['user_session'] ?? Str::uuid()->toString(),
             'prompt' => $request->prompt ?? null,
-            'image_url' => $imageUrl,
+            'image_url' => $uploadResult['url'],
+            'cloudinary_public_id' => $uploadResult['public_id'],
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],
@@ -117,6 +119,21 @@ class DesignController extends Controller
 
         return response()->json([
             'design' => $design,
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $design = Design::findOrFail($id);
+
+        if ($design->cloudinary_public_id) {
+            $this->cloudinaryService->delete($design->cloudinary_public_id);
+        }
+
+        $design->delete();
+
+        return response()->json([
+            'message' => 'Design deleted successfully',
         ]);
     }
 

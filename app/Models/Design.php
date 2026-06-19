@@ -13,6 +13,7 @@ class Design extends Model
         'user_session',
         'prompt',
         'image_url',
+        'cloudinary_public_id',
         'color_count',
         'has_gradient',
         'has_shadow',

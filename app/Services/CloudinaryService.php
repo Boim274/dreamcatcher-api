@@ -21,7 +21,7 @@ class CloudinaryService
         $this->uploadUrl = "https://api.cloudinary.com/v1_1/{$this->cloudName}/image/upload";
     }
 
-    public function upload(UploadedFile $file): ?string
+    public function upload(UploadedFile $file): ?array
     {
         if (empty($this->apiKey) || empty($this->cloudName)) {
             Log::error('Cloudinary credentials not configured');
@@ -38,7 +38,10 @@ class CloudinaryService
                 ]);
 
             if ($response->successful()) {
-                return $response->json('secure_url');
+                return [
+                    'url' => $response->json('secure_url'),
+                    'public_id' => $response->json('public_id'),
+                ];
             }
 
             Log::error('Cloudinary upload failed', ['status' => $response->status(), 'body' => $response->body()]);
@@ -49,7 +52,7 @@ class CloudinaryService
         }
     }
 
-    public function uploadFromContent(string $content, string $filename = 'image.png'): ?string
+    public function uploadFromContent(string $content, string $filename = 'image.png'): ?array
     {
         if (empty($this->apiKey) || empty($this->cloudName)) {
             Log::error('Cloudinary credentials not configured');
@@ -68,7 +71,10 @@ class CloudinaryService
                 ]);
 
             if ($response->successful()) {
-                return $response->json('secure_url');
+                return [
+                    'url' => $response->json('secure_url'),
+                    'public_id' => $response->json('public_id'),
+                ];
             }
 
             Log::error('Cloudinary upload failed', ['status' => $response->status(), 'body' => $response->body()]);
@@ -77,5 +83,46 @@ class CloudinaryService
             Log::error('Cloudinary upload error: ' . $e->getMessage());
             return null;
         }
+    }
+
+    public function delete(string $publicId): bool
+    {
+        if (empty($this->apiKey) || empty($this->cloudName)) {
+            return false;
+        }
+
+        try {
+            $url = "https://api.cloudinary.com/v1_1/{$this->cloudName}/resources/image/upload/{$publicId}";
+
+            $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
+                ->delete($url);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('Cloudinary delete error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function extractPublicId(string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{ext}
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!$path) {
+            return null;
+        }
+
+        // Remove leading / and /image/upload/ prefix
+        $path = ltrim($path, '/');
+        $path = preg_replace('#^image/upload/(v\d+/)?#', '', $path);
+
+        // Remove extension
+        $path = preg_replace('/\.\w+$/', '', $path);
+
+        return $path ?: null;
     }
 }

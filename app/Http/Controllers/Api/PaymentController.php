@@ -28,14 +28,20 @@ class PaymentController extends Controller
         $order = Order::findOrFail($validated['order_id']);
 
         $paymentProofUrl = null;
+        $cloudinaryPublicId = null;
         if ($request->hasFile('payment_proof')) {
-            $paymentProofUrl = $this->cloudinaryService->upload($request->file('payment_proof'));
+            $uploadResult = $this->cloudinaryService->upload($request->file('payment_proof'));
+            if ($uploadResult) {
+                $paymentProofUrl = $uploadResult['url'];
+                $cloudinaryPublicId = $uploadResult['public_id'];
+            }
         }
 
         $payment = Payment::create([
             'order_id' => $validated['order_id'],
             'payment_method' => $validated['payment_method'],
             'payment_proof' => $paymentProofUrl,
+            'cloudinary_public_id' => $cloudinaryPublicId,
             'amount' => $validated['amount'],
             'payment_type' => $validated['payment_type'],
             'payment_status' => 'pending',
@@ -56,6 +62,21 @@ class PaymentController extends Controller
 
         return response()->json([
             'payments' => $payments,
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $payment = Payment::findOrFail($id);
+
+        if ($payment->cloudinary_public_id) {
+            $this->cloudinaryService->delete($payment->cloudinary_public_id);
+        }
+
+        $payment->delete();
+
+        return response()->json([
+            'message' => 'Payment deleted successfully',
         ]);
     }
 }

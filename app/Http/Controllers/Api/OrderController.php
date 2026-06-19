@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Service;
+use App\Models\StatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -176,5 +177,54 @@ class OrderController extends Controller
         return response()->json([
             'order' => $order,
         ]);
+    }
+
+    public function requestCancel(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        $user = $request->user();
+        if (!$user || ($order->user_id !== $user->id && !$user->isAdmin())) {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        if (!in_array($order->status, ['pending', 'waiting_payment'])) {
+            return response()->json([
+                'message' => 'Pesanan hanya bisa dibatalkan sebelum pembayaran atau dalam status pending',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $order->update(['status' => 'cancel_requested']);
+
+            StatusHistory::create([
+                'order_id' => $order->id,
+                'status' => 'cancel_requested',
+                'notes' => $validated['reason'] ?? 'User meminta pembatalan',
+                'created_by' => 'user',
+            ]);
+
+            DB::commit();
+
+            $order->load('items.service');
+
+            return response()->json([
+                'message' => 'Permintaan pembatalan berhasil dikirim. Menunggu konfirmasi admin.',
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Gagal memproses permintaan pembatalan: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

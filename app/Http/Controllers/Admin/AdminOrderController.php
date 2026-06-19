@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\StatusHistory;
 use Illuminate\Http\Request;
 
 class AdminOrderController extends Controller
@@ -54,11 +55,20 @@ class AdminOrderController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,waiting_payment,paid,processed,completed,cancelled',
+            'status' => 'required|in:pending,waiting_payment,paid,processed,completed,cancelled,cancel_requested',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         $order = Order::findOrFail($id);
+        $oldStatus = $order->status;
         $order->update(['status' => $validated['status']]);
+
+        StatusHistory::create([
+            'order_id' => $order->id,
+            'status' => $validated['status'],
+            'notes' => $validated['notes'] ?? null,
+            'created_by' => 'admin',
+        ]);
 
         return response()->json([
             'message' => 'Order status updated successfully',
@@ -76,6 +86,7 @@ class AdminOrderController extends Controller
             'processed' => Order::where('status', 'processed')->count(),
             'completed' => Order::where('status', 'completed')->count(),
             'cancelled' => Order::where('status', 'cancelled')->count(),
+            'cancel_requested' => Order::where('status', 'cancel_requested')->count(),
         ]);
     }
 }

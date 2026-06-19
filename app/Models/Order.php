@@ -45,6 +45,11 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function statusHistory()
+    {
+        return $this->hasMany(StatusHistory::class)->orderBy('created_at', 'asc');
+    }
+
     public function scopeStatus($query, $status)
     {
         return $query->where('status', $status);

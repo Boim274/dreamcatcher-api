@@ -33,6 +33,7 @@ Route::prefix('v1')->group(function () {
         Route::post('upload', [DesignController::class, 'upload']);
         Route::get('{id}', [DesignController::class, 'show']);
         Route::post('{id}/validate', [DesignController::class, 'validateDesign']);
+        Route::delete('{id}', [DesignController::class, 'destroy']);
     });
 
     Route::prefix('orders')->group(function () {
@@ -41,11 +42,13 @@ Route::prefix('v1')->group(function () {
         Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('{id}', [OrderController::class, 'show'])->middleware('auth:sanctum');
+        Route::post('{id}/request-cancel', [OrderController::class, 'requestCancel'])->middleware('auth:sanctum');
     });
 
     Route::prefix('payments')->group(function () {
         Route::post('upload', [PaymentController::class, 'upload']);
         Route::get('{orderId}', [PaymentController::class, 'show']);
+        Route::delete('{id}', [PaymentController::class, 'destroy']);
     });
 
     Route::get('portfolios', [PortfolioController::class, 'index']);
