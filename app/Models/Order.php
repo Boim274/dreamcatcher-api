@@ -20,6 +20,7 @@ class Order extends Model
         'shipping_cost',
         'total_price',
         'notes',
+        'description',
         'status',
         'user_id',
     ];

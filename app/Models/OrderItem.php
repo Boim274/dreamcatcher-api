@@ -21,6 +21,9 @@ class OrderItem extends Model
         'design_id',
         'design_notes',
         'selected_color',
+        'sablon_type',
+        'print_area',
+        'print_size',
     ];
 
     protected $casts = [

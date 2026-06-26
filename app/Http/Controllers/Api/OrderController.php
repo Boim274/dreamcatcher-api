@@ -21,6 +21,7 @@ class OrderController extends Controller
             'address' => $request->delivery_method === 'delivery' ? 'required|string' : 'nullable|string',
             'delivery_method' => 'required|in:pickup,delivery',
             'notes' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.service_id' => 'required|exists:services,id',
             'items.*.product_name' => 'nullable|string|max:255',
@@ -33,6 +34,8 @@ class OrderController extends Controller
             'items.*.design_type' => 'nullable|in:ai_generated,uploaded',
             'items.*.design_id' => 'nullable|exists:designs,id',
             'items.*.design_notes' => 'nullable|string',
+            'items.*.print_area' => 'nullable|string|max:50',
+            'items.*.print_size' => 'nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
@@ -68,6 +71,7 @@ class OrderController extends Controller
                 'shipping_cost' => $shippingCost,
                 'total_price' => $totalPrice,
                 'notes' => $validated['notes'] ?? null,
+                'description' => $validated['description'] ?? null,
                 'status' => 'waiting_payment',
                 'user_id' => $userId,
             ]);
@@ -82,9 +86,12 @@ class OrderController extends Controller
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['unit_price'] * $item['quantity'],
                     'selected_color' => $item['selected_color'] ?? null,
+                    'sablon_type' => $item['sablon_type'] ?? null,
                     'design_type' => $item['design_type'] ?? 'uploaded',
                     'design_id' => $item['design_id'] ?? null,
                     'design_notes' => $item['design_notes'] ?? null,
+                    'print_area' => $item['print_area'] ?? null,
+                    'print_size' => $item['print_size'] ?? null,
                 ]);
             }
 
@@ -115,7 +122,7 @@ class OrderController extends Controller
             'phone' => 'required|string|max:20',
         ]);
 
-        $order = Order::with(['items.service', 'payments'])
+        $order = Order::with(['items.service', 'items.design', 'payments'])
             ->where('order_code', $validated['order_code'])
             ->where('phone', $validated['phone'])
             ->first();
@@ -135,7 +142,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $orders = Order::with(['items.service'])
+        $orders = Order::with(['items.service', 'items.design'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);

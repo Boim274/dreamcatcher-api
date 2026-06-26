@@ -54,7 +54,7 @@ class Service extends Model
         }
 
         if ($quantity >= 24) {
-            return (float) ($typeConfig['lusin_1'] ?? $this->base_price);
+            return (float) ($typeConfig['lusin_2_6'] ?? $typeConfig['lusin_1'] ?? $this->base_price);
         } elseif ($quantity >= 12) {
             return (float) ($typeConfig['lusin_1'] ?? $this->base_price);
         } else {
