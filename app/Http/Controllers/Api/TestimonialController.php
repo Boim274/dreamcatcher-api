@@ -60,4 +60,36 @@ class TestimonialController extends Controller
             'testimonial' => $testimonial,
         ], 201);
     }
+
+    public function update(Request $request, $id)
+    {
+        $testimonial = Testimonial::findOrFail($id);
+
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'review' => 'nullable|string|max:1000',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $imageUrl = $testimonial->image_url;
+        if ($request->hasFile('image')) {
+            if ($testimonial->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $testimonial->image_url))) {
+                Storage::disk('public')->delete(str_replace('storage/', '', $testimonial->image_url));
+            }
+            $path = $request->file('image')->store('testimonials', 'public');
+            $imageUrl = 'storage/' . $path;
+        }
+
+        $testimonial->update([
+            'rating' => $validated['rating'],
+            'review' => $validated['review'] ?? null,
+            'image_url' => $imageUrl,
+            'is_active' => false,
+        ]);
+
+        return response()->json([
+            'message' => 'Testimoni berhasil diperbarui dan akan ditinjau kembali oleh admin.',
+            'testimonial' => $testimonial->fresh(),
+        ]);
+    }
 }

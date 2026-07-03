@@ -46,6 +46,11 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function testimonial()
+    {
+        return $this->hasOne(Testimonial::class);
+    }
+
     public function statusHistory()
     {
         return $this->hasMany(StatusHistory::class)->orderBy('created_at', 'asc');

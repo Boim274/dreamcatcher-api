@@ -97,7 +97,7 @@ class OrderController extends Controller
 
             DB::commit();
 
-            $order->load('items.service', 'items.design');
+            $order->load('items.service', 'items.design', 'items.product.images');
 
             return response()->json([
                 'message' => 'Order created successfully',
@@ -122,7 +122,7 @@ class OrderController extends Controller
             'phone' => 'required|string|max:20',
         ]);
 
-        $order = Order::with(['items.service', 'items.design', 'payments'])
+        $order = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
             ->where('order_code', $validated['order_code'])
             ->where('phone', $validated['phone'])
             ->first();
@@ -142,7 +142,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $orders = Order::with(['items.service', 'items.design', 'payments'])
+        $orders = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -154,7 +154,7 @@ class OrderController extends Controller
 
     public function show(Request $request, $id)
     {
-        $order = Order::with(['items.service', 'items.design', 'payments', 'user'])
+        $order = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial', 'user'])
             ->findOrFail($id);
 
         $user = $request->user();
@@ -171,7 +171,7 @@ class OrderController extends Controller
 
     public function showByCode($orderCode)
     {
-        $order = Order::with(['items.service', 'items.design', 'payments', 'user'])
+        $order = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial', 'user'])
             ->where('order_code', $orderCode)
             ->first();
 

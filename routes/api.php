@@ -1,20 +1,25 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\DesignController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PortfolioController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductOrderController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SizeController;
 use App\Http\Controllers\Api\TestimonialController;
+use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminColorController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPortfolioController;
+use App\Http\Controllers\Admin\AdminProductController;
 use App\Http\Controllers\Admin\AdminServiceController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminSizeController;
@@ -62,9 +67,16 @@ Route::prefix('v1')->group(function () {
     Route::get('portfolios', [PortfolioController::class, 'index']);
     Route::get('portfolios/featured', [PortfolioController::class, 'featured']);
 
+    Route::get('products', [ProductController::class, 'index']);
+    Route::get('products/{id}', [ProductController::class, 'show']);
+    Route::get('categories', [CategoryController::class, 'index']);
+
+    Route::post('product-orders', [ProductOrderController::class, 'store'])->middleware('auth:sanctum');
+
     Route::get('colors', [ColorController::class, 'index']);
     Route::get('testimonials', [TestimonialController::class, 'index']);
     Route::post('testimonials', [TestimonialController::class, 'store']);
+    Route::put('testimonials/{id}', [TestimonialController::class, 'update']);
     Route::get('sizes', [SizeController::class, 'index']);
     Route::get('settings', [SettingController::class, 'index']);
     Route::get('settings/{group}', [SettingController::class, 'group']);
@@ -128,6 +140,22 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [AdminSizeController::class, 'store']);
             Route::put('{id}', [AdminSizeController::class, 'update']);
             Route::delete('{id}', [AdminSizeController::class, 'destroy']);
+        });
+
+        Route::prefix('products')->group(function () {
+            Route::get('/', [AdminProductController::class, 'index']);
+            Route::post('/', [AdminProductController::class, 'store']);
+            Route::get('{id}', [AdminProductController::class, 'show']);
+            Route::post('{id}', [AdminProductController::class, 'update']);
+            Route::delete('{id}', [AdminProductController::class, 'destroy']);
+        });
+
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [AdminCategoryController::class, 'index']);
+            Route::post('/', [AdminCategoryController::class, 'store']);
+            Route::get('{id}', [AdminCategoryController::class, 'show']);
+            Route::put('{id}', [AdminCategoryController::class, 'update']);
+            Route::delete('{id}', [AdminCategoryController::class, 'destroy']);
         });
     });
 });

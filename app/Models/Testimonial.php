@@ -26,6 +26,11 @@ class Testimonial extends Model
         'sort_order' => 'integer',
     ];
 
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

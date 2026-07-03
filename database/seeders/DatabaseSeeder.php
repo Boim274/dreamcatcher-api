@@ -30,6 +30,11 @@ class DatabaseSeeder extends Seeder
         DB::table('settings')->truncate();
         DB::table('testimonials')->truncate();
         DB::table('sizes')->truncate();
+        DB::table('products')->truncate();
+        DB::table('categories')->truncate();
+        DB::table('product_images')->truncate();
+        DB::table('product_sizes')->truncate();
+        DB::table('product_colors')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $services = [
@@ -194,6 +199,8 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             TestimonialSeeder::class,
             SizeSeeder::class,
+            CategorySeeder::class,
+            ProductSeeder::class,
         ]);
     }
 }
