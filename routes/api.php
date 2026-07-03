@@ -1,16 +1,24 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\DesignController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SizeController;
+use App\Http\Controllers\Api\TestimonialController;
+use App\Http\Controllers\Admin\AdminColorController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPortfolioController;
 use App\Http\Controllers\Admin\AdminServiceController;
+use App\Http\Controllers\Admin\AdminSettingController;
+use App\Http\Controllers\Admin\AdminSizeController;
+use App\Http\Controllers\Admin\AdminTestimonialController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -54,6 +62,13 @@ Route::prefix('v1')->group(function () {
     Route::get('portfolios', [PortfolioController::class, 'index']);
     Route::get('portfolios/featured', [PortfolioController::class, 'featured']);
 
+    Route::get('colors', [ColorController::class, 'index']);
+    Route::get('testimonials', [TestimonialController::class, 'index']);
+    Route::post('testimonials', [TestimonialController::class, 'store']);
+    Route::get('sizes', [SizeController::class, 'index']);
+    Route::get('settings', [SettingController::class, 'index']);
+    Route::get('settings/{group}', [SettingController::class, 'group']);
+
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
@@ -87,6 +102,32 @@ Route::prefix('v1')->group(function () {
             Route::put('{id}', [AdminPortfolioController::class, 'update']);
             Route::delete('{id}', [AdminPortfolioController::class, 'destroy']);
         });
+
+        Route::prefix('colors')->group(function () {
+            Route::get('/', [AdminColorController::class, 'index']);
+            Route::post('/', [AdminColorController::class, 'store']);
+            Route::put('{id}', [AdminColorController::class, 'update']);
+            Route::delete('{id}', [AdminColorController::class, 'destroy']);
+        });
+
+        Route::prefix('settings')->group(function () {
+            Route::get('/', [AdminSettingController::class, 'index']);
+            Route::put('/', [AdminSettingController::class, 'update']);
+            Route::delete('{id}', [AdminSettingController::class, 'destroy']);
+        });
+
+        Route::prefix('testimonials')->group(function () {
+            Route::get('/', [AdminTestimonialController::class, 'index']);
+            Route::post('/', [AdminTestimonialController::class, 'store']);
+            Route::put('{id}', [AdminTestimonialController::class, 'update']);
+            Route::delete('{id}', [AdminTestimonialController::class, 'destroy']);
+        });
+
+        Route::prefix('sizes')->group(function () {
+            Route::get('/', [AdminSizeController::class, 'index']);
+            Route::post('/', [AdminSizeController::class, 'store']);
+            Route::put('{id}', [AdminSizeController::class, 'update']);
+            Route::delete('{id}', [AdminSizeController::class, 'destroy']);
+        });
     });
 });
-

@@ -8,9 +8,27 @@ use Illuminate\Http\Request;
 
 class AdminServiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $services = Service::orderBy('created_at', 'desc')->get();
+        $query = Service::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('pricing_type')) {
+            $query->where('pricing_type', $request->pricing_type);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $services = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
             'services' => $services,

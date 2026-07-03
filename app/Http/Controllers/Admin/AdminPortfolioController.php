@@ -10,12 +10,29 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminPortfolioController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $portfolios = Portfolio::with('service')
-            ->orderBy('sort_order')
+        $query = Portfolio::with('service');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('service_id')) {
+            $query->where('service_id', $request->service_id);
+        }
+
+        if ($request->filled('is_featured')) {
+            $query->where('is_featured', $request->boolean('is_featured'));
+        }
+
+        $portfolios = $query->orderBy('sort_order')
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(15);
 
         return response()->json([
             'portfolios' => $portfolios,

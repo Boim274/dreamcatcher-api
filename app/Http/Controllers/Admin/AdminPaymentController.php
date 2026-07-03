@@ -13,8 +13,23 @@ class AdminPaymentController extends Controller
     {
         $query = Payment::with(['order', 'verifier']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('payment_status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('order', function ($q) use ($search) {
+                $q->where('order_code', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
         }
 
         $payments = $query->orderBy('created_at', 'desc')->paginate(15);

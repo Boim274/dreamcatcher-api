@@ -26,6 +26,10 @@ class DatabaseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::table('portfolios')->truncate();
         DB::table('services')->truncate();
+        DB::table('colors')->truncate();
+        DB::table('settings')->truncate();
+        DB::table('testimonials')->truncate();
+        DB::table('sizes')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $services = [
@@ -183,6 +187,13 @@ class DatabaseSeeder extends Seeder
             'description' => 'Seragam perusahaan dengan bordir logo',
             'is_featured' => false,
             'sort_order' => 5,
+        ]);
+
+        $this->call([
+            ColorSeeder::class,
+            SettingSeeder::class,
+            TestimonialSeeder::class,
+            SizeSeeder::class,
         ]);
     }
 }

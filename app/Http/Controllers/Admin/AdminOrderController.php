@@ -55,7 +55,7 @@ class AdminOrderController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,waiting_payment,paid,processed,completed,cancelled,cancel_requested',
+            'status' => 'required|in:pending,waiting_payment,paid,processed,delivered,completed,cancelled,cancel_requested',
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -84,6 +84,7 @@ class AdminOrderController extends Controller
             'waiting_payment' => Order::where('status', 'waiting_payment')->count(),
             'paid' => Order::where('status', 'paid')->count(),
             'processed' => Order::where('status', 'processed')->count(),
+            'delivered' => Order::where('status', 'delivered')->count(),
             'completed' => Order::where('status', 'completed')->count(),
             'cancelled' => Order::where('status', 'cancelled')->count(),
             'cancel_requested' => Order::where('status', 'cancel_requested')->count(),
