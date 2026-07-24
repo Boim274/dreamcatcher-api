@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\CloudinaryService;
+use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
     public function __construct(
-        private CloudinaryService $cloudinaryService
+        private CloudinaryService $cloudinaryService,
+        private OrderWorkflowService $workflowService,
     ) {}
 
     public function upload(Request $request)
@@ -48,9 +50,12 @@ class PaymentController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
+        $this->workflowService->markAsWaitingVerification($order);
+
         return response()->json([
             'message' => 'Payment uploaded successfully. Please wait for verification.',
             'payment' => $payment,
+            'order' => $order->fresh(),
         ], 201);
     }
 

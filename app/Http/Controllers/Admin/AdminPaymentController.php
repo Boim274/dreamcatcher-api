@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\Payment;
+use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 
 class AdminPaymentController extends Controller
 {
+    public function __construct(
+        private OrderWorkflowService $workflowService
+    ) {}
+
     public function index(Request $request)
     {
         $query = Payment::with(['order', 'verifier']);
@@ -58,19 +62,74 @@ class AdminPaymentController extends Controller
         ]);
 
         $payment = Payment::findOrFail($id);
-        $payment->update([
-            'payment_status' => 'verified',
-            'verified_by' => $request->user()->id,
-            'verified_at' => now(),
-            'notes' => $validated['notes'] ?? $payment->notes,
-        ]);
-
         $order = $payment->order;
-        $order->update(['status' => 'paid']);
+
+        if ($payment->payment_status !== 'pending') {
+            return response()->json(['message' => 'Pembayaran sudah diverifikasi sebelumnya'], 422);
+        }
+
+        $updatedOrder = $this->workflowService->verifyFullPayment(
+            $order,
+            $payment,
+            $validated['notes'] ?? null
+        );
 
         return response()->json([
-            'message' => 'Payment verified successfully',
+            'message' => 'Pembayaran lunas berhasil diverifikasi. Pesanan siap diproses.',
             'payment' => $payment->fresh(['order', 'verifier']),
+            'order' => $updatedOrder,
+        ]);
+    }
+
+    public function verifyDp(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+        ]);
+
+        $payment = Payment::findOrFail($id);
+        $order = $payment->order;
+
+        if ($payment->payment_status !== 'pending') {
+            return response()->json(['message' => 'Pembayaran sudah diverifikasi sebelumnya'], 422);
+        }
+
+        $updatedOrder = $this->workflowService->verifyDpPayment(
+            $order,
+            $payment,
+            $validated['notes'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Pembayaran DP berhasil diverifikasi. Pesanan siap diproses.',
+            'payment' => $payment->fresh(['order', 'verifier']),
+            'order' => $updatedOrder,
+        ]);
+    }
+
+    public function verifyPelunasan(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+        ]);
+
+        $payment = Payment::findOrFail($id);
+        $order = $payment->order;
+
+        if ($payment->payment_status !== 'pending') {
+            return response()->json(['message' => 'Pembayaran sudah diverifikasi sebelumnya'], 422);
+        }
+
+        $updatedOrder = $this->workflowService->verifyPelunasan(
+            $order,
+            $payment,
+            $validated['notes'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Pelunasan berhasil diverifikasi.',
+            'payment' => $payment->fresh(['order', 'verifier']),
+            'order' => $updatedOrder,
         ]);
     }
 
@@ -81,16 +140,22 @@ class AdminPaymentController extends Controller
         ]);
 
         $payment = Payment::findOrFail($id);
-        $payment->update([
-            'payment_status' => 'rejected',
-            'verified_by' => $request->user()->id,
-            'verified_at' => now(),
-            'notes' => $validated['notes'],
-        ]);
+        $order = $payment->order;
+
+        if ($payment->payment_status !== 'pending') {
+            return response()->json(['message' => 'Pembayaran sudah diverifikasi sebelumnya'], 422);
+        }
+
+        $updatedOrder = $this->workflowService->rejectPayment(
+            $order,
+            $payment,
+            $validated['notes']
+        );
 
         return response()->json([
-            'message' => 'Payment rejected',
+            'message' => 'Pembayaran ditolak',
             'payment' => $payment->fresh(['order', 'verifier']),
+            'order' => $updatedOrder,
         ]);
     }
 

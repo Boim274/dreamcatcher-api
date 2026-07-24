@@ -22,6 +22,9 @@ class Order extends Model
         'notes',
         'description',
         'status',
+        'payment_status',
+        'paid_amount',
+        'remaining_amount',
         'user_id',
     ];
 

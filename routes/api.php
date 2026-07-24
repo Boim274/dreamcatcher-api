@@ -96,6 +96,8 @@ Route::prefix('v1')->group(function () {
             Route::get('pending', [AdminPaymentController::class, 'pending']);
             Route::get('{id}', [AdminPaymentController::class, 'show']);
             Route::patch('{id}/verify', [AdminPaymentController::class, 'verify']);
+            Route::patch('{id}/verify-dp', [AdminPaymentController::class, 'verifyDp']);
+            Route::patch('{id}/verify-pelunasan', [AdminPaymentController::class, 'verifyPelunasan']);
             Route::patch('{id}/reject', [AdminPaymentController::class, 'reject']);
         });
 

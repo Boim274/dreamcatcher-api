@@ -88,7 +88,10 @@ class ProductOrderController extends Controller
             'shipping_cost' => $shipping,
             'total_price' => $total,
             'notes' => $validated['notes'] ?? null,
-            'status' => 'pending',
+            'status' => 'waiting_payment',
+            'payment_status' => 'pending',
+            'paid_amount' => 0,
+            'remaining_amount' => $total,
         ]);
 
         foreach ($orderItems as $item) {

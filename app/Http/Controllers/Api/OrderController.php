@@ -73,6 +73,9 @@ class OrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'description' => $validated['description'] ?? null,
                 'status' => 'waiting_payment',
+                'payment_status' => 'pending',
+                'paid_amount' => 0,
+                'remaining_amount' => $totalPrice,
                 'user_id' => $userId,
             ]);
 

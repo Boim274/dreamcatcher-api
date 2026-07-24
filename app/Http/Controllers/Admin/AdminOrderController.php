@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\StatusHistory;
+use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 
 class AdminOrderController extends Controller
 {
+    public function __construct(
+        private OrderWorkflowService $workflowService
+    ) {}
+
     public function index(Request $request)
     {
         $query = Order::with(['items.service', 'user']);
@@ -55,24 +58,21 @@ class AdminOrderController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,waiting_payment,paid,processed,delivered,completed,cancelled,cancel_requested',
+            'status' => 'required|string',
             'notes' => 'nullable|string|max:500',
         ]);
 
         $order = Order::findOrFail($id);
-        $oldStatus = $order->status;
-        $order->update(['status' => $validated['status']]);
 
-        StatusHistory::create([
-            'order_id' => $order->id,
-            'status' => $validated['status'],
-            'notes' => $validated['notes'] ?? null,
-            'created_by' => 'admin',
-        ]);
+        $updatedOrder = $this->workflowService->transitionStatus(
+            $order,
+            $validated['status'],
+            $validated['notes'] ?? null
+        );
 
         return response()->json([
-            'message' => 'Order status updated successfully',
-            'order' => $order->fresh(),
+            'message' => 'Status pesanan berhasil diperbarui',
+            'order' => $updatedOrder,
         ]);
     }
 
@@ -80,11 +80,11 @@ class AdminOrderController extends Controller
     {
         return response()->json([
             'total_orders' => Order::count(),
-            'pending' => Order::where('status', 'pending')->count(),
             'waiting_payment' => Order::where('status', 'waiting_payment')->count(),
-            'paid' => Order::where('status', 'paid')->count(),
-            'processed' => Order::where('status', 'processed')->count(),
-            'delivered' => Order::where('status', 'delivered')->count(),
+            'waiting_verification' => Order::where('status', 'waiting_verification')->count(),
+            'ready_to_process' => Order::where('status', 'ready_to_process')->count(),
+            'processing' => Order::where('status', 'processing')->count(),
+            'ready_for_pickup' => Order::where('status', 'ready_for_pickup')->count(),
             'completed' => Order::where('status', 'completed')->count(),
             'cancelled' => Order::where('status', 'cancelled')->count(),
             'cancel_requested' => Order::where('status', 'cancel_requested')->count(),
