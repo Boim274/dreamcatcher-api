@@ -17,8 +17,17 @@ class AdminPaymentController extends Controller
     {
         $query = Payment::with(['order', 'verifier']);
 
-        if ($request->filled('status')) {
-            $query->where('payment_status', $request->status);
+        if ($request->has('status')) {
+            $statuses = $request->input('status');
+            if (is_array($statuses)) {
+                $query->whereIn('payment_status', $statuses);
+            } else {
+                $query->where('payment_status', $statuses);
+            }
+        }
+
+        if ($request->has('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
         }
 
         if ($request->filled('search')) {

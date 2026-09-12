@@ -45,6 +45,8 @@ class AdminProductController extends Controller
 
     public function store(Request $request)
     {
+        $this->prepareProductInput($request);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -124,6 +126,8 @@ class AdminProductController extends Controller
     public function update(Request $request, $id)
     {
         $product = Product::with('images')->findOrFail($id);
+
+        $this->prepareProductInput($request);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -234,5 +238,34 @@ class AdminProductController extends Controller
         return response()->json([
             'message' => 'Product deleted successfully',
         ]);
+    }
+
+    private function prepareProductInput(Request $request): void
+    {
+        $merge = [];
+        if ($request->has('sizes') && is_string($request->sizes)) {
+            $decoded = json_decode($request->sizes, true);
+            if (is_array($decoded)) {
+                $merge['sizes'] = $decoded;
+            }
+        }
+        if ($request->has('colors') && is_string($request->colors)) {
+            $decoded = json_decode($request->colors, true);
+            if (is_array($decoded)) {
+                $merge['colors'] = $decoded;
+            }
+        }
+        if ($request->has('existing_images') && is_string($request->existing_images)) {
+            $decoded = json_decode($request->existing_images, true);
+            if (is_array($decoded)) {
+                $merge['existing_images'] = $decoded;
+            }
+        }
+        if ($request->has('is_active')) {
+            $merge['is_active'] = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $request->is_active;
+        }
+        if (!empty($merge)) {
+            $request->merge($merge);
+        }
     }
 }

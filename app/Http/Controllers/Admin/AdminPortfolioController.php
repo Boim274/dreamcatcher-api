@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Portfolio;
 use App\Models\Service;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class AdminPortfolioController extends Controller
 {
+    public function __construct(
+        private CloudinaryService $cloudinaryService,
+    ) {}
+
     public function index(Request $request)
     {
         $query = Portfolio::with('service');
@@ -52,8 +56,9 @@ class AdminPortfolioController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('portfolios', 'public');
-            $validated['image_url'] = 'storage/' . $path;
+            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $validated['image_url'] = $uploadResult['url'];
+            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
         }
 
         unset($validated['image']);
@@ -89,11 +94,12 @@ class AdminPortfolioController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if ($portfolio->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $portfolio->image_url))) {
-                Storage::disk('public')->delete(str_replace('storage/', '', $portfolio->image_url));
+            if ($portfolio->cloudinary_public_id) {
+                $this->cloudinaryService->delete($portfolio->cloudinary_public_id);
             }
-            $path = $request->file('image')->store('portfolios', 'public');
-            $validated['image_url'] = 'storage/' . $path;
+            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $validated['image_url'] = $uploadResult['url'];
+            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
         }
 
         unset($validated['image']);
@@ -109,8 +115,8 @@ class AdminPortfolioController extends Controller
     {
         $portfolio = Portfolio::findOrFail($id);
 
-        if ($portfolio->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $portfolio->image_url))) {
-            Storage::disk('public')->delete(str_replace('storage/', '', $portfolio->image_url));
+        if ($portfolio->cloudinary_public_id) {
+            $this->cloudinaryService->delete($portfolio->cloudinary_public_id);
         }
 
         $portfolio->delete();

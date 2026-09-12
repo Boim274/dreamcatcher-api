@@ -51,14 +51,9 @@ class OrderController extends Controller
             $shippingCost = $validated['delivery_method'] === 'delivery' ? 15000 : 0;
             $totalPrice = $subtotal + $shippingCost;
 
-            // Optional auth: resolve user from token if present
-            $userId = null;
-            if ($request->bearerToken()) {
-                $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
-                if ($token) {
-                    $userId = $token->tokenable->id;
-                }
-            }
+            // Service orders require an authenticated user so every order is
+            // tied to its owner.
+            $user = $request->user();
 
             $order = Order::create([
                 'order_code' => $orderCode,
@@ -76,7 +71,7 @@ class OrderController extends Controller
                 'payment_status' => 'pending',
                 'paid_amount' => 0,
                 'remaining_amount' => $totalPrice,
-                'user_id' => $userId,
+                'user_id' => $user->id,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -145,9 +140,37 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $orders = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
+        $query = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
+            ->where('user_id', $user->id);
+
+        if ($request->has('status')) {
+            $statuses = $request->input('status');
+            if (is_array($statuses)) {
+                $query->whereIn('status', $statuses);
+            } else {
+                $query->where('status', $statuses);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_code', 'like', "%{$search}%")
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($iq) use ($search) {
+                        $iq->where('product_name', 'like', "%{$search}%")
+                            ->orWhereHas('product', function ($pq) use ($search) {
+                                $pq->where('name', 'like', "%{$search}%");
+                            })
+                            ->orWhereHas('service', function ($sq) use ($search) {
+                                $sq->where('name', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return response()->json([

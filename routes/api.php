@@ -2,7 +2,10 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\AIChatController;
+use App\Http\Controllers\Api\AIDesignRecommendationController;
 use App\Http\Controllers\Api\ColorController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DesignController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
@@ -16,6 +19,7 @@ use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminColorController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPortfolioController;
@@ -41,16 +45,41 @@ Route::prefix('v1')->group(function () {
         Route::get('{id}', [ServiceController::class, 'show']);
     });
 
-    Route::prefix('designs')->group(function () {
-        Route::post('generate', [DesignController::class, 'generate']);
-        Route::post('upload', [DesignController::class, 'upload']);
-        Route::get('{id}', [DesignController::class, 'show']);
-        Route::post('{id}/validate', [DesignController::class, 'validateDesign']);
-        Route::delete('{id}', [DesignController::class, 'destroy']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::prefix('ai')->group(function () {
+            Route::post('chat', [AIChatController::class, 'chat']);
+            Route::get('chat/history', [AIChatController::class, 'history']);
+            Route::get('recommendations', [AIDesignRecommendationController::class, 'index']);
+            Route::get('recommendations/suggestions', [AIDesignRecommendationController::class, 'suggestions']);
+        });
+
+        Route::prefix('designs')->group(function () {
+            Route::get('/', [DesignController::class, 'index']);
+            Route::get('quota', [DesignController::class, 'quota']);
+            Route::post('generate', [DesignController::class, 'generate']);
+            Route::post('upload', [DesignController::class, 'upload']);
+            Route::get('{id}', [DesignController::class, 'show']);
+            Route::get('{id}/versions', [DesignController::class, 'versions']);
+            Route::post('{id}/enhance', [DesignController::class, 'enhance']);
+            Route::post('{id}/edit', [DesignController::class, 'edit']);
+            Route::post('{id}/validate', [DesignController::class, 'validateDesign']);
+            Route::delete('{id}', [DesignController::class, 'destroy']);
+        });
+
+        Route::prefix('conversations')->group(function () {
+            Route::get('/', [ConversationController::class, 'index']);
+            Route::post('/', [ConversationController::class, 'store']);
+            Route::get('{id}', [ConversationController::class, 'show']);
+            Route::put('{id}', [ConversationController::class, 'update']);
+            Route::post('{id}/duplicate', [ConversationController::class, 'duplicate']);
+            Route::delete('{id}', [ConversationController::class, 'destroy']);
+            Route::post('{id}/restore', [ConversationController::class, 'restore']);
+            Route::delete('{id}/force', [ConversationController::class, 'forceDestroy']);
+        });
     });
 
     Route::prefix('orders')->group(function () {
-        Route::post('/', [OrderController::class, 'store']);
+        Route::post('/', [OrderController::class, 'store'])->middleware('auth:sanctum');
         Route::get('track', [OrderController::class, 'track']);
         Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
@@ -83,6 +112,9 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('users', [AdminUserController::class, 'index']);
+        Route::put('users/{id}/quota', [AdminUserController::class, 'updateQuota']);
 
         Route::prefix('orders')->group(function () {
             Route::get('/', [AdminOrderController::class, 'index']);
@@ -148,7 +180,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [AdminProductController::class, 'index']);
             Route::post('/', [AdminProductController::class, 'store']);
             Route::get('{id}', [AdminProductController::class, 'show']);
-            Route::post('{id}', [AdminProductController::class, 'update']);
+            Route::match(['post', 'put'], '{id}', [AdminProductController::class, 'update']);
             Route::delete('{id}', [AdminProductController::class, 'destroy']);
         });
 

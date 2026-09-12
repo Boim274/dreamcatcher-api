@@ -15,18 +15,36 @@ class AdminOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['items.service', 'user']);
+        $query = Order::with(['items.service', 'items.product.images', 'user']);
 
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $statuses = $request->input('status');
+            if (is_array($statuses)) {
+                $query->whereIn('status', $statuses);
+            } else {
+                $query->where('status', $statuses);
+            }
         }
 
-        if ($request->has('search')) {
+        if ($request->has('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('order_code', 'like', "%{$search}%")
                     ->orWhere('customer_name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($iq) use ($search) {
+                        $iq->where('product_name', 'like', "%{$search}%")
+                            ->orWhereHas('product', function ($pq) use ($search) {
+                                $pq->where('name', 'like', "%{$search}%");
+                            })
+                            ->orWhereHas('service', function ($sq) use ($search) {
+                                $sq->where('name', 'like', "%{$search}%");
+                            });
+                    });
             });
         }
 
@@ -46,6 +64,7 @@ class AdminOrderController extends Controller
         $order = Order::with([
             'items.service',
             'items.design',
+            'items.product.images',
             'payments.verifier',
             'user',
         ])->findOrFail($id);

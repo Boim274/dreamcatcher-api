@@ -12,6 +12,7 @@ class Portfolio extends Model
     protected $fillable = [
         'title',
         'image_url',
+        'cloudinary_public_id',
         'service_id',
         'description',
         'is_featured',

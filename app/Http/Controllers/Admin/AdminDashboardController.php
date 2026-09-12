@@ -49,9 +49,9 @@ class AdminDashboardController extends Controller
             }
         }
 
-        $recentOrders = Order::with(['items.service'])
+        $recentOrders = Order::with(['items.service', 'items.product.images'])
             ->orderBy('created_at', 'desc')
-            ->take(5)
+            ->take(6)
             ->get();
 
         $statusQuery = Order::query();

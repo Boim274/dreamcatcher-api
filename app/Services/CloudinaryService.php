@@ -60,7 +60,7 @@ class CloudinaryService
         }
 
         try {
-            $mimeType = mime_content_type($filename) ?: 'image/png';
+            $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->buffer($content) ?: 'image/png';
             $base64 = 'data:' . $mimeType . ';base64,' . base64_encode($content);
 
             $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
@@ -87,17 +87,25 @@ class CloudinaryService
 
     public function delete(string $publicId): bool
     {
-        if (empty($this->apiKey) || empty($this->cloudName)) {
+        if (empty($this->apiKey) || empty($this->apiSecret) || empty($this->cloudName)) {
             return false;
         }
 
         try {
-            $url = "https://api.cloudinary.com/v1_1/{$this->cloudName}/resources/image/upload/{$publicId}";
+            $timestamp = time();
+            $signature = sha1('public_id=' . $publicId . '&timestamp=' . $timestamp . $this->apiSecret);
 
-            $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
-                ->delete($url);
+            $response = Http::post(
+                "https://api.cloudinary.com/v1_1/{$this->cloudName}/image/destroy",
+                [
+                    'public_id' => $publicId,
+                    'timestamp' => $timestamp,
+                    'api_key' => $this->apiKey,
+                    'signature' => $signature,
+                ]
+            );
 
-            return $response->successful();
+            return $response->successful() && $response->json('result') === 'ok';
         } catch (\Exception $e) {
             Log::error('Cloudinary delete error: ' . $e->getMessage());
             return false;

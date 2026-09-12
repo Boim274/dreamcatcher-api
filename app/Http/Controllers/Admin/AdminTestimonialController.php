@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class AdminTestimonialController extends Controller
 {
+    public function __construct(
+        private CloudinaryService $cloudinaryService,
+    ) {}
+
     public function index(Request $request)
     {
         $query = Testimonial::query();
@@ -49,8 +53,9 @@ class AdminTestimonialController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('testimonials', 'public');
-            $validated['image_url'] = 'storage/' . $path;
+            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $validated['image_url'] = $uploadResult['url'];
+            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
         }
 
         unset($validated['image']);
@@ -77,11 +82,12 @@ class AdminTestimonialController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if ($testimonial->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $testimonial->image_url))) {
-                Storage::disk('public')->delete(str_replace('storage/', '', $testimonial->image_url));
+            if ($testimonial->cloudinary_public_id) {
+                $this->cloudinaryService->delete($testimonial->cloudinary_public_id);
             }
-            $path = $request->file('image')->store('testimonials', 'public');
-            $validated['image_url'] = 'storage/' . $path;
+            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $validated['image_url'] = $uploadResult['url'];
+            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
         }
 
         unset($validated['image']);
@@ -97,8 +103,8 @@ class AdminTestimonialController extends Controller
     {
         $testimonial = Testimonial::findOrFail($id);
 
-        if ($testimonial->image_url && Storage::disk('public')->exists(str_replace('storage/', '', $testimonial->image_url))) {
-            Storage::disk('public')->delete(str_replace('storage/', '', $testimonial->image_url));
+        if ($testimonial->cloudinary_public_id) {
+            $this->cloudinaryService->delete($testimonial->cloudinary_public_id);
         }
 
         $testimonial->delete();

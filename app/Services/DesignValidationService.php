@@ -6,17 +6,29 @@ use Illuminate\Support\Facades\Log;
 
 class DesignValidationService
 {
-    private int $maxColors = 3;
+    private int $maxColors = 8;
     private float $gradientThreshold = 0.1;
     private float $contrastMinThreshold = 50;
 
-    public function validateFromUrl(string $url): array
+    // Printing methods that support true full-color output (DTF / DTG) have no
+    // color-count limit, so the color/gradient warnings are skipped entirely.
+    private const FULL_COLOR_SABLONS = ['dtf', 'dtg'];
+
+    private function isFullColorSablon(?string $sablonType): bool
+    {
+        if (!$sablonType) {
+            return false;
+        }
+        return in_array(strtolower(trim($sablonType)), self::FULL_COLOR_SABLONS, true);
+    }
+
+    public function validateFromUrl(string $url, ?string $sablonType = null): array
     {
         if (str_starts_with($url, 'data:') || !str_starts_with($url, 'http')) {
-            return $this->validate($url);
+            return $this->validate($url, $sablonType);
         }
 
-        $tempPath = tempnam(sys_get_temp_dir(), 'design_');
+        $tempPath = null;
 
         try {
             $imageContent = @file_get_contents($url);
@@ -24,22 +36,34 @@ class DesignValidationService
                 return $this->failValidation('Gagal mengunduh gambar dari URL');
             }
 
+            $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->buffer($imageContent) ?: 'image/png';
+            $extension = match ($mimeType) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                default => 'png',
+            };
+
+            $tempPath = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . 'design_' . uniqid('', true) . '.' . $extension;
             file_put_contents($tempPath, $imageContent);
-            return $this->validate($tempPath);
+
+            return $this->validate($tempPath, $sablonType);
         } catch (\Exception $e) {
             return $this->failValidation('Gagal memvalidasi gambar: ' . $e->getMessage());
         } finally {
-            if (file_exists($tempPath)) {
+            if ($tempPath && file_exists($tempPath)) {
                 @unlink($tempPath);
             }
         }
     }
 
-    public function validate(string $imagePath): array
+    public function validate(string $imagePath, ?string $sablonType = null): array
     {
         try {
             if (str_starts_with($imagePath, 'data:')) {
-                return $this->validateBase64Image($imagePath);
+                return $this->validateBase64Image($imagePath, $sablonType);
             }
 
             if (!file_exists($imagePath)) {
@@ -57,7 +81,7 @@ class DesignValidationService
             }
 
             if ($this->hasGD() || $this->hasImagick()) {
-                return $this->validateWithGD($imagePath);
+                return $this->validateWithGD($imagePath, $sablonType);
             }
 
             return $this->defaultValidation($imagePath);
@@ -77,7 +101,7 @@ class DesignValidationService
         return class_exists('Imagick');
     }
 
-    private function validateWithGD(string $imagePath): array
+    private function validateWithGD(string $imagePath, ?string $sablonType = null): array
     {
         try {
             $imageData = file_get_contents($imagePath);
@@ -98,6 +122,26 @@ class DesignValidationService
 
             imagedestroy($image);
             imagedestroy($resized);
+
+            // Full-color methods (DTF/DTG) accept any number of colors plus
+            // gradients, so those designs are always marked production-ready.
+            $fullColor = $this->isFullColorSablon($sablonType);
+
+            if ($fullColor) {
+                return [
+                    'color_count' => $colorCount,
+                    'has_gradient' => $hasGradient,
+                    'has_shadow' => false,
+                    'contrast_score' => $contrastScore,
+                    'is_valid' => true,
+                    'message' => implode("\n", [
+                        "Jumlah warna: {$colorCount} warna ({$sablonType} - Full color) - Valid",
+                        'Gradient: Mendukung full color - Valid',
+                        "Kontras: {$contrastScore}% - Valid",
+                    ]),
+                    'status_text' => 'SIAP PRODUKSI',
+                ];
+            }
 
             $isValid = $colorCount <= $this->maxColors && $contrastScore >= $this->contrastMinThreshold;
 
@@ -242,7 +286,7 @@ class DesignValidationService
         return round($contrast, 2);
     }
 
-    private function validateBase64Image(string $base64): array
+    private function validateBase64Image(string $base64, ?string $sablonType = null): array
     {
         $svgContent = base64_decode(explode(',', $base64)[1] ?? '');
         $colorMatches = [];
@@ -257,6 +301,20 @@ class DesignValidationService
         }
 
         $colorCount = count($uniqueColors);
+
+        if ($this->isFullColorSablon($sablonType)) {
+            return [
+                'color_count' => $colorCount,
+                'has_gradient' => str_contains($svgContent, 'gradient'),
+                'has_shadow' => str_contains($svgContent, 'shadow') || str_contains($svgContent, 'filter'),
+                'contrast_score' => 75,
+                'is_valid' => true,
+                'message' => "Jumlah warna: {$colorCount} warna ({$sablonType} - Full color) - Valid\n" .
+                           "Gradient: Mendukung full color - Valid\n" .
+                           "Kontras: 75% - Valid",
+                'status_text' => 'SIAP PRODUKSI',
+            ];
+        }
 
         return [
             'color_count' => $colorCount,

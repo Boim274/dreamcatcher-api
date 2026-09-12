@@ -18,6 +18,12 @@ class User extends Authenticatable
         'role',
         'phone',
         'address',
+        'generate_used',
+        'generate_limit',
+        'edit_used',
+        'edit_limit',
+        'last_generate_at',
+        'last_edit_at',
     ];
 
     protected $hidden = [
@@ -30,6 +36,12 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'generate_used' => 'integer',
+            'generate_limit' => 'integer',
+            'edit_used' => 'integer',
+            'edit_limit' => 'integer',
+            'last_generate_at' => 'datetime',
+            'last_edit_at' => 'datetime',
         ];
     }
 

@@ -18,7 +18,17 @@ return [
 
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'dall-e-3'),
+        'model' => env('OPENAI_MODEL', 'krea/krea-2-medium'),
+        'edit_model' => env('OPENAI_IMAGE_EDIT_MODEL', 'google/gemini-3.1-flash-lite-image'),
+        'vision_model' => env('OPENAI_VISION_MODEL'),
+        'vision_models' => env('OPENAI_VISION_MODEL')
+            ? [env('OPENAI_VISION_MODEL')]
+            : [
+                'google/gemma-4-31b-it:free',
+                'google/gemma-4-26b-a4b-it:free',
+                'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+                'nvidia/nemotron-nano-12b-v2-vl:free',
+            ],
     ],
 
     'cloudinary' => [

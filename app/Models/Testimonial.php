@@ -14,6 +14,7 @@ class Testimonial extends Model
         'rating',
         'review',
         'image_url',
+        'cloudinary_public_id',
         'order_id',
         'is_active',
         'sort_order',
