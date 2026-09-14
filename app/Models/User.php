@@ -15,6 +15,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
+        'avatar',
         'role',
         'phone',
         'address',
@@ -53,6 +55,11 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function testimonial()
+    {
+        return $this->hasOne(Testimonial::class);
     }
 
     public function verifiedPayments()

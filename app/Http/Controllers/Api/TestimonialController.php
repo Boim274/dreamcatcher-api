@@ -25,6 +25,20 @@ class TestimonialController extends Controller
         ]);
     }
 
+    public function myTestimonial(Request $request)
+    {
+        $user = $request->user('sanctum') ?? $request->user();
+        if (!$user) {
+            return response()->json(['testimonial' => null]);
+        }
+
+        $testimonial = Testimonial::where('user_id', $user->id)->first();
+
+        return response()->json([
+            'testimonial' => $testimonial,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -32,50 +46,107 @@ class TestimonialController extends Controller
             'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image_url' => 'nullable|string|max:1000',
         ]);
 
-        $order = Order::findOrFail($validated['order_id']);
+        $order = Order::with('user')->findOrFail($validated['order_id']);
 
         if ($order->status !== 'completed') {
             return response()->json(['message' => 'Pesanan belum selesai'], 400);
         }
 
-        if (Testimonial::where('order_id', $order->id)->exists()) {
-            return response()->json(['message' => 'Anda sudah memberikan testimoni untuk pesanan ini'], 400);
+        // Identify user_id from auth user or order's owner
+        $userId = $request->user('sanctum')?->id ?? $request->user()?->id ?? $order->user_id;
+
+        // Check if user already has an existing testimonial (1 User = 1 Testimonial)
+        $existing = null;
+        if ($userId) {
+            $existing = Testimonial::where('user_id', $userId)->first();
+        }
+        if (!$existing) {
+            $existing = Testimonial::where('order_id', $order->id)->first();
         }
 
+        // ==========================================
+        // 1. UPDATE EXISTING (If user already reviewed)
+        // ==========================================
+        if ($existing) {
+            $imageUrl = $existing->image_url;
+            $cloudinaryPublicId = $existing->cloudinary_public_id;
+
+            if ($request->hasFile('image')) {
+                if ($cloudinaryPublicId) {
+                    $this->cloudinaryService->delete($cloudinaryPublicId);
+                }
+                $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+                $imageUrl = $uploadResult['url'];
+                $cloudinaryPublicId = $uploadResult['public_id'];
+            } elseif ($order->user?->avatar) {
+                $imageUrl = $order->user->avatar;
+            } elseif ($request->filled('image_url')) {
+                $imageUrl = $request->input('image_url');
+            }
+
+            $existing->update([
+                'user_id' => $userId ?? $existing->user_id,
+                'order_id' => $order->id,
+                'customer_name' => $order->customer_name ?: $existing->customer_name,
+                'rating' => $validated['rating'],
+                'review' => $validated['review'] ?? null,
+                'image_url' => $imageUrl,
+                'cloudinary_public_id' => $cloudinaryPublicId,
+                'is_active' => false,
+            ]);
+
+            return response()->json([
+                'message' => 'Testimoni Anda berhasil diperbarui dan akan ditinjau kembali oleh admin.',
+                'testimonial' => $existing->fresh(),
+                'is_updated' => true,
+            ], 200);
+        }
+
+        // ==========================================
+        // 2. INSERT NEW (If first time for this user)
+        // ==========================================
         $imageUrl = null;
         $cloudinaryPublicId = null;
         if ($request->hasFile('image')) {
             $uploadResult = $this->cloudinaryService->upload($request->file('image'));
             $imageUrl = $uploadResult['url'];
             $cloudinaryPublicId = $uploadResult['public_id'];
+        } else {
+            $imageUrl = $order->user?->avatar ?? $request->input('image_url');
         }
 
         $testimonial = Testimonial::create([
+            'user_id' => $userId,
+            'order_id' => $order->id,
             'customer_name' => $order->customer_name,
             'rating' => $validated['rating'],
             'review' => $validated['review'] ?? null,
             'image_url' => $imageUrl,
             'cloudinary_public_id' => $cloudinaryPublicId,
-            'order_id' => $order->id,
             'is_active' => false,
         ]);
 
         return response()->json([
             'message' => 'Terima kasih! Testimoni Anda akan ditinjau oleh admin sebelum tampil di halaman utama.',
             'testimonial' => $testimonial,
+            'is_updated' => false,
         ], 201);
     }
 
     public function update(Request $request, $id)
     {
-        $testimonial = Testimonial::findOrFail($id);
+        $testimonial = Testimonial::with('order.user')->findOrFail($id);
+        $user = $request->user('sanctum') ?? $request->user();
 
         $validated = $request->validate([
+            'order_id' => 'nullable|exists:orders,id',
             'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image_url' => 'nullable|string|max:1000',
         ]);
 
         $imageUrl = $testimonial->image_url;
@@ -87,9 +158,13 @@ class TestimonialController extends Controller
             $uploadResult = $this->cloudinaryService->upload($request->file('image'));
             $imageUrl = $uploadResult['url'];
             $cloudinaryPublicId = $uploadResult['public_id'];
+        } elseif (!$imageUrl) {
+            $imageUrl = $testimonial->order?->user?->avatar ?? $user?->avatar ?? $request->input('image_url');
         }
 
         $testimonial->update([
+            'order_id' => $validated['order_id'] ?? $testimonial->order_id,
+            'user_id' => $testimonial->user_id ?? $user?->id ?? $testimonial->order?->user_id,
             'rating' => $validated['rating'],
             'review' => $validated['review'] ?? null,
             'image_url' => $imageUrl,
@@ -103,3 +178,4 @@ class TestimonialController extends Controller
         ]);
     }
 }
+

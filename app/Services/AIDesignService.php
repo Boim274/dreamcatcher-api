@@ -58,9 +58,9 @@ class AIDesignService
 
     public function enhance(string $sourceImageUrl, int $count = 1): array
     {
-        $prompt = 'Enhance and upscale this t-shirt design to be high quality and print-ready.'
-            . 'Improve sharpness, color consistency and edge detail, keep the exact same design,'
-            . 'layout and content unchanged, transparent background preferred, no added text or watermark.';
+        $prompt = 'Enhance and upscale this standalone graphic logo/artwork for t-shirt screenprinting to ultra high quality.'
+            . ' Improve sharpness, vector clean contour lines, color consistency and edge detail, keep the exact same graphic artwork and logo,'
+            . ' layout and content unchanged, isolated on plain solid background, no added human model, no shirt mockup, no added text or watermark.';
 
         return $this->editDesign($prompt, $sourceImageUrl, $count, null, false);
     }
@@ -96,7 +96,7 @@ class AIDesignService
 
     private function printRequirementSuffix(): string
     {
-        return ' Create a professional t-shirt printing design, high contrast, clean edges, print-ready.';
+        return ', standalone isolated t-shirt graphic artwork, vector illustration logo decal, clean crisp contour edges, solid isolated plain background, DTF screenprinting ready, 2D flat artwork, no human, no person, no model, no clothes, no mannequin, no t-shirt mockup, no photo of person.';
     }
 
     private function postImages(array $payload, string $fallbackPrompt, int $count): array
@@ -152,16 +152,27 @@ class AIDesignService
             return $this->generateMockDesigns($prompt, $count);
         }
 
+        $finalPrompt = $prompt;
+        $lowerPrompt = strtolower($finalPrompt);
+        if (!str_contains($lowerPrompt, 'no human') && !str_contains($lowerPrompt, 'standalone isolated')) {
+            $finalPrompt .= $this->printRequirementSuffix();
+        }
+
+        $defaultNegative = 'person, human, model, man, woman, face, body, wearing t-shirt, t-shirt mockup, realistic photo of person, mannequin, clothes, outfit, photography, photo of shirt, wrinkled shirt, 3d shirt mockup, background clutter, blurry, low quality, watermark, cropped';
+        $mergedNegative = !empty($negativePrompt)
+            ? $negativePrompt . ', ' . $defaultNegative
+            : $defaultNegative;
+
         try {
             $payload = [
                 'model' => $this->model,
-                'prompt' => $prompt,
+                'prompt' => $finalPrompt,
                 'n' => $count,
                 'size' => '1024x1024',
                 'response_format' => 'url',
             ];
-            if (!empty($negativePrompt)) {
-                $payload['negative_prompt'] = $negativePrompt;
+            if (!empty($mergedNegative)) {
+                $payload['negative_prompt'] = $mergedNegative;
             }
 
             $response = Http::withHeaders([

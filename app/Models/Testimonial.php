@@ -10,6 +10,7 @@ class Testimonial extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'customer_name',
         'rating',
         'review',
@@ -21,11 +22,17 @@ class Testimonial extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
         'rating' => 'integer',
         'order_id' => 'integer',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function order()
     {

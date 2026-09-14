@@ -153,6 +153,7 @@ class DesignController extends Controller
             ], 500);
         }
 
+        $sablonType = $validated['sablon_type'] ?? null;
         $validation = $this->validationService->validateFromUrl($uploadResult['url'], $sablonType);
 
         $designType = !empty($validated['from_chat']) ? 'chat_upload' : 'uploaded';

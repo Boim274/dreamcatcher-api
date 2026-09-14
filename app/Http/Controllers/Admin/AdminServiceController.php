@@ -50,13 +50,6 @@ class AdminServiceController extends Controller
             'options_config' => 'nullable|array',
         ]);
 
-        if (isset($validated['pricing_config']) && is_array($validated['pricing_config'])) {
-            $validated['pricing_config'] = json_encode($validated['pricing_config']);
-        }
-        if (isset($validated['options_config']) && is_array($validated['options_config'])) {
-            $validated['options_config'] = json_encode($validated['options_config']);
-        }
-
         $service = Service::create($validated);
 
         return response()->json([
@@ -88,13 +81,6 @@ class AdminServiceController extends Controller
             'pricing_config' => 'nullable|array',
             'options_config' => 'nullable|array',
         ]);
-
-        if (isset($validated['pricing_config']) && is_array($validated['pricing_config'])) {
-            $validated['pricing_config'] = json_encode($validated['pricing_config']);
-        }
-        if (isset($validated['options_config']) && is_array($validated['options_config'])) {
-            $validated['options_config'] = json_encode($validated['options_config']);
-        }
 
         $service = Service::findOrFail($id);
         $service->update($validated);

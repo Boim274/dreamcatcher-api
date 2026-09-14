@@ -47,64 +47,89 @@ class AdminProductController extends Controller
     {
         $this->prepareProductInput($request);
 
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'base_price' => 'required|numeric|min:0',
-            'category_id' => 'nullable|exists:categories,id',
-            'stock' => 'required|integer|min:0',
-            'is_active' => 'boolean',
-            'sort_order' => 'integer',
-            'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'category_id' => 'nullable|integer',
+            'stock' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
             'sizes' => 'nullable|array',
-            'sizes.*.name' => 'required|string|max:50',
-            'sizes.*.stock' => 'integer|min:0',
+            'sizes.*.name' => 'nullable|string|max:100',
+            'sizes.*.stock' => 'nullable|integer|min:0',
             'colors' => 'nullable|array',
-            'colors.*.name' => 'required|string|max:50',
-            'colors.*.hex_code' => 'nullable|string|max:7',
+            'colors.*.name' => 'nullable|string|max:100',
+            'colors.*.hex_code' => 'nullable|string|max:100',
         ]);
+
+        if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Product store validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'request' => $request->except(['images']),
+            ]);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $product = Product::create([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'base_price' => $validated['base_price'],
             'category_id' => $validated['category_id'] ?? null,
-            'stock' => $validated['stock'],
+            'stock' => $validated['stock'] ?? 0,
             'is_active' => $validated['is_active'] ?? true,
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $i => $file) {
-                $uploadResult = $this->cloudinaryService->upload($file);
-                if ($uploadResult) {
-                    $product->images()->create([
-                        'image_url' => $uploadResult['url'],
-                        'cloudinary_public_id' => $uploadResult['public_id'],
+            $files = $request->file('images');
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+            foreach ($files as $i => $file) {
+                if ($file && $file->isValid()) {
+                    try {
+                        $uploadResult = $this->cloudinaryService->upload($file);
+                        if ($uploadResult) {
+                            $product->images()->create([
+                                'image_url' => $uploadResult['url'],
+                                'cloudinary_public_id' => $uploadResult['public_id'],
+                                'sort_order' => $i,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Cloudinary product image upload error: ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        if (!empty($validated['sizes'])) {
+            foreach ($validated['sizes'] as $i => $size) {
+                if (!empty(trim((string)($size['name'] ?? '')))) {
+                    $product->sizes()->create([
+                        'name' => trim((string)$size['name']),
+                        'stock' => (int)($size['stock'] ?? 0),
                         'sort_order' => $i,
                     ]);
                 }
             }
         }
 
-        if ($request->filled('sizes')) {
-            foreach ($request->sizes as $i => $size) {
-                $product->sizes()->create([
-                    'name' => $size['name'],
-                    'stock' => $size['stock'] ?? 0,
-                    'sort_order' => $i,
-                ]);
-            }
-        }
-
-        if ($request->filled('colors')) {
-            foreach ($request->colors as $i => $color) {
-                $product->colors()->create([
-                    'name' => $color['name'],
-                    'hex_code' => $color['hex_code'] ?? null,
-                    'sort_order' => $i,
-                ]);
+        if (!empty($validated['colors'])) {
+            foreach ($validated['colors'] as $i => $color) {
+                if (!empty(trim((string)($color['name'] ?? '')))) {
+                    $product->colors()->create([
+                        'name' => trim((string)$color['name']),
+                        'hex_code' => !empty($color['hex_code']) ? trim((string)$color['hex_code']) : '#111827',
+                        'sort_order' => $i,
+                    ]);
+                }
             }
         }
 
@@ -129,26 +154,37 @@ class AdminProductController extends Controller
 
         $this->prepareProductInput($request);
 
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'base_price' => 'sometimes|numeric|min:0',
-            'category_id' => 'nullable|exists:categories,id',
-            'stock' => 'sometimes|integer|min:0',
-            'is_active' => 'boolean',
-            'sort_order' => 'integer',
-            'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'category_id' => 'nullable|integer',
+            'stock' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
             'existing_images' => 'nullable|array',
             'existing_images.*.id' => 'nullable|integer|exists:product_images,id',
-            'existing_images.*.sort_order' => 'integer',
+            'existing_images.*.sort_order' => 'nullable|integer',
             'sizes' => 'nullable|array',
-            'sizes.*.name' => 'required|string|max:50',
-            'sizes.*.stock' => 'integer|min:0',
+            'sizes.*.name' => 'nullable|string|max:100',
+            'sizes.*.stock' => 'nullable|integer|min:0',
             'colors' => 'nullable|array',
-            'colors.*.name' => 'required|string|max:50',
-            'colors.*.hex_code' => 'nullable|string|max:7',
+            'colors.*.name' => 'nullable|string|max:100',
+            'colors.*.hex_code' => 'nullable|string|max:100',
         ]);
+
+        if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Product update validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'request' => $request->except(['images']),
+            ]);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $product->update([
             'name' => $validated['name'] ?? $product->name,
@@ -243,27 +279,104 @@ class AdminProductController extends Controller
     private function prepareProductInput(Request $request): void
     {
         $merge = [];
-        if ($request->has('sizes') && is_string($request->sizes)) {
-            $decoded = json_decode($request->sizes, true);
-            if (is_array($decoded)) {
-                $merge['sizes'] = $decoded;
+
+        if ($request->has('category_id')) {
+            $catId = $request->category_id;
+            if ($catId === '' || $catId === '0' || $catId === 'null' || $catId === null || $catId === 0) {
+                $merge['category_id'] = null;
+            } else {
+                $idInt = (int) $catId;
+                if (\App\Models\Category::where('id', $idInt)->exists()) {
+                    $merge['category_id'] = $idInt;
+                } else {
+                    $merge['category_id'] = null;
+                }
             }
         }
-        if ($request->has('colors') && is_string($request->colors)) {
-            $decoded = json_decode($request->colors, true);
-            if (is_array($decoded)) {
-                $merge['colors'] = $decoded;
+
+        if ($request->has('base_price')) {
+            $price = $request->base_price;
+            if (is_string($price)) {
+                $cleanPrice = preg_replace('/[^0-9]/', '', $price);
+                $merge['base_price'] = $cleanPrice !== '' ? (float) $cleanPrice : 0;
             }
         }
+
+        if ($request->has('stock')) {
+            $merge['stock'] = (int) preg_replace('/[^0-9]/', '', (string) $request->stock);
+        }
+
+        if ($request->has('sort_order')) {
+            $merge['sort_order'] = (int) preg_replace('/[^0-9]/', '', (string) $request->sort_order);
+        }
+
+        if ($request->has('description') && $request->description === '') {
+            $merge['description'] = null;
+        }
+
+        if ($request->has('sizes')) {
+            $sizesData = $request->sizes;
+            if (is_string($sizesData)) {
+                $sizesData = json_decode($sizesData, true);
+            }
+            if (is_array($sizesData)) {
+                $cleanedSizes = [];
+                foreach ($sizesData as $s) {
+                    if (is_array($s) && !empty(trim((string) ($s['name'] ?? '')))) {
+                        $cleanedSizes[] = [
+                            'name' => trim((string) $s['name']),
+                            'stock' => (int) ($s['stock'] ?? 0),
+                        ];
+                    }
+                }
+                $merge['sizes'] = $cleanedSizes;
+            }
+        }
+
+        if ($request->has('colors')) {
+            $colorsData = $request->colors;
+            if (is_string($colorsData)) {
+                $colorsData = json_decode($colorsData, true);
+            }
+            if (is_array($colorsData)) {
+                $cleanedColors = [];
+                foreach ($colorsData as $c) {
+                    if (is_array($c) && !empty(trim((string) ($c['name'] ?? '')))) {
+                        $cleanedColors[] = [
+                            'name' => trim((string) $c['name']),
+                            'hex_code' => !empty($c['hex_code']) ? trim((string) $c['hex_code']) : '#111827',
+                        ];
+                    }
+                }
+                $merge['colors'] = $cleanedColors;
+            }
+        }
+
         if ($request->has('existing_images') && is_string($request->existing_images)) {
             $decoded = json_decode($request->existing_images, true);
             if (is_array($decoded)) {
                 $merge['existing_images'] = $decoded;
             }
         }
+
+        if ($request->hasFile('images')) {
+            $files = $request->file('images');
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+            $validFiles = [];
+            foreach ($files as $f) {
+                if ($f instanceof \Illuminate\Http\UploadedFile && $f->isValid()) {
+                    $validFiles[] = $f;
+                }
+            }
+            $request->files->set('images', $validFiles);
+        }
+
         if ($request->has('is_active')) {
             $merge['is_active'] = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $request->is_active;
         }
+
         if (!empty($merge)) {
             $request->merge($merge);
         }

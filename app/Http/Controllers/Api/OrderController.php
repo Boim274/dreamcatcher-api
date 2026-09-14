@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Service;
 use App\Models\StatusHistory;
+use App\Models\Testimonial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -141,7 +142,15 @@ class OrderController extends Controller
         $user = $request->user();
 
         $query = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
-            ->where('user_id', $user->id);
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+                if (!empty($user->email)) {
+                    $q->orWhere('customer_email', $user->email);
+                }
+                if (!empty($user->phone)) {
+                    $q->orWhere('phone', $user->phone);
+                }
+            });
 
         if ($request->has('status')) {
             $statuses = $request->input('status');
@@ -170,11 +179,60 @@ class OrderController extends Controller
             });
         }
 
+        $perPage = (int) $request->input('per_page', 10);
         $orders = $query->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate($perPage);
+
+        $userTestimonial = $user ? Testimonial::where('user_id', $user->id)->first() : null;
+        if ($userTestimonial) {
+            $orders->getCollection()->transform(function ($order) use ($userTestimonial) {
+                $order->user_testimonial = $userTestimonial;
+                return $order;
+            });
+        }
 
         return response()->json([
             'orders' => $orders,
+            'user_testimonial' => $userTestimonial,
+        ]);
+    }
+
+    public function myStats(Request $request)
+    {
+        $user = $request->user();
+
+        $activeStatuses = [
+            'pending',
+            'waiting_payment',
+            'waiting_verification',
+            'ready_to_process',
+            'processing',
+            'ready_for_pickup',
+            'cancel_requested',
+        ];
+
+        $baseQuery = Order::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+            if (!empty($user->email)) {
+                $q->orWhere('customer_email', $user->email);
+            }
+            if (!empty($user->phone)) {
+                $q->orWhere('phone', $user->phone);
+            }
+        });
+
+        $total = (clone $baseQuery)->count();
+        $active = (clone $baseQuery)->whereIn('status', $activeStatuses)->count();
+        $completed = (clone $baseQuery)->where('status', 'completed')->count();
+        $cancelled = (clone $baseQuery)->where('status', 'cancelled')->count();
+
+        return response()->json([
+            'stats' => [
+                'total' => $total,
+                'active' => $active,
+                'completed' => $completed,
+                'cancelled' => $cancelled,
+            ],
         ]);
     }
 
@@ -190,8 +248,12 @@ class OrderController extends Controller
             ], 403);
         }
 
+        $userTestimonial = $order->user_id ? Testimonial::where('user_id', $order->user_id)->first() : null;
+        $order->user_testimonial = $userTestimonial;
+
         return response()->json([
             'order' => $order,
+            'user_testimonial' => $userTestimonial,
         ]);
     }
 
@@ -207,8 +269,12 @@ class OrderController extends Controller
             ], 404);
         }
 
+        $userTestimonial = $order->user_id ? Testimonial::where('user_id', $order->user_id)->first() : null;
+        $order->user_testimonial = $userTestimonial;
+
         return response()->json([
             'order' => $order,
+            'user_testimonial' => $userTestimonial,
         ]);
     }
 

@@ -34,9 +34,13 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('login', [AuthController::class, 'login']);
+        Route::post('google', [AuthController::class, 'googleAuth']);
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
         Route::get('me', [AuthController::class, 'me'])->middleware('auth:sanctum');
         Route::put('profile', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+        Route::post('profile', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+        Route::post('avatar', [AuthController::class, 'updateAvatar'])->middleware('auth:sanctum');
+        Route::delete('avatar', [AuthController::class, 'deleteAvatar'])->middleware('auth:sanctum');
         Route::put('password', [AuthController::class, 'updatePassword'])->middleware('auth:sanctum');
     });
 
@@ -82,6 +86,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/', [OrderController::class, 'store'])->middleware('auth:sanctum');
         Route::get('track', [OrderController::class, 'track']);
         Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
+        Route::get('my-stats', [OrderController::class, 'myStats'])->middleware('auth:sanctum');
+        Route::get('my-orders', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('{id}', [OrderController::class, 'show'])->middleware('auth:sanctum');
         Route::post('{id}/request-cancel', [OrderController::class, 'requestCancel'])->middleware('auth:sanctum');
@@ -103,6 +109,7 @@ Route::prefix('v1')->group(function () {
     Route::post('product-orders', [ProductOrderController::class, 'store'])->middleware('auth:sanctum');
 
     Route::get('colors', [ColorController::class, 'index']);
+    Route::get('testimonials/my', [TestimonialController::class, 'myTestimonial'])->middleware('auth:sanctum');
     Route::get('testimonials', [TestimonialController::class, 'index']);
     Route::post('testimonials', [TestimonialController::class, 'store']);
     Route::put('testimonials/{id}', [TestimonialController::class, 'update']);
@@ -113,8 +120,14 @@ Route::prefix('v1')->group(function () {
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
-        Route::get('users', [AdminUserController::class, 'index']);
-        Route::put('users/{id}/quota', [AdminUserController::class, 'updateQuota']);
+        Route::prefix('users')->group(function () {
+            Route::get('/', [AdminUserController::class, 'index']);
+            Route::post('/', [AdminUserController::class, 'store']);
+            Route::put('{id}', [AdminUserController::class, 'update']);
+            Route::patch('{id}/role', [AdminUserController::class, 'updateRole']);
+            Route::delete('{id}', [AdminUserController::class, 'destroy']);
+            Route::put('{id}/quota', [AdminUserController::class, 'updateQuota']);
+        });
 
         Route::prefix('orders')->group(function () {
             Route::get('/', [AdminOrderController::class, 'index']);

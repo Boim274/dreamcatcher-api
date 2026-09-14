@@ -20,15 +20,27 @@ return [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'krea/krea-2-medium'),
         'edit_model' => env('OPENAI_IMAGE_EDIT_MODEL', 'google/gemini-3.1-flash-lite-image'),
-        'vision_model' => env('OPENAI_VISION_MODEL'),
-        'vision_models' => env('OPENAI_VISION_MODEL')
-            ? [env('OPENAI_VISION_MODEL')]
+        'chat_models' => env('OPENAI_CHAT_MODELS')
+            ? array_filter(array_map('trim', explode(',', env('OPENAI_CHAT_MODELS'))))
             : [
-                'google/gemma-4-31b-it:free',
-                'google/gemma-4-26b-a4b-it:free',
-                'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-                'nvidia/nemotron-nano-12b-v2-vl:free',
+                'liquid/lfm-2.5-2.6b:free',
+                'dots-studio/dots-3-note-preview:free',
+                'nex-agi/nex-n2.5-mini:free',
+                'nvidia/nemotron-3.5-lightning:free',
+                'nex-agi/nex-n2.5-pro:free',
+                'inclusionai/ling-3.0-flash-vl:free',
             ],
+        'vision_model' => env('OPENAI_VISION_MODEL'),
+        'vision_models' => env('OPENAI_VISION_MODELS')
+            ? array_filter(array_map('trim', explode(',', env('OPENAI_VISION_MODELS'))))
+            : (env('OPENAI_VISION_MODEL')
+                ? [env('OPENAI_VISION_MODEL')]
+                : [
+                    'inclusionai/ling-3.0-flash-vl:free',
+                    'google/gemma-4-31b-it:free',
+                    'google/gemma-4-26b-a4b-it:free',
+                    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+                ]),
     ],
 
     'cloudinary' => [

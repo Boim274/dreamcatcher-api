@@ -15,7 +15,7 @@ class AdminOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['items.service', 'items.product.images', 'user']);
+        $query = Order::with(['items.service', 'items.design', 'items.product.images', 'user']);
 
         if ($request->has('status')) {
             $statuses = $request->input('status');

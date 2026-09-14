@@ -40,6 +40,26 @@ class Service extends Model
         return $query->where('is_active', true);
     }
 
+    public function getOptionsConfigAttribute($value)
+    {
+        if (is_null($value)) return [];
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public function getPricingConfigAttribute($value)
+    {
+        if (is_null($value)) return [];
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+        return is_array($decoded) ? $decoded : [];
+    }
+
     public function getPricingForQuantity(string $sablonType, int $quantity): float
     {
         if ($this->pricing_type === 'flat') {
