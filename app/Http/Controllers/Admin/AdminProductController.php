@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
 use App\Services\CloudinaryService;
+use App\Services\ImageOptimizationService;
 use Illuminate\Http\Request;
 
 class AdminProductController extends Controller
 {
     public function __construct(
-        private CloudinaryService $cloudinaryService
+        private CloudinaryService $cloudinaryService,
+        private ImageOptimizationService $imageOptimizationService
     ) {}
 
     public function index(Request $request)
@@ -94,16 +96,16 @@ class AdminProductController extends Controller
             foreach ($files as $i => $file) {
                 if ($file && $file->isValid()) {
                     try {
-                        $uploadResult = $this->cloudinaryService->upload($file);
-                        if ($uploadResult) {
+                        $uploadResult = $this->imageOptimizationService->optimizeWebAsset($file, 'products');
+                        if ($uploadResult && !empty($uploadResult['url'])) {
                             $product->images()->create([
                                 'image_url' => $uploadResult['url'],
-                                'cloudinary_public_id' => $uploadResult['public_id'],
+                                'cloudinary_public_id' => $uploadResult['cloudinary_public_id'] ?? null,
                                 'sort_order' => $i,
                             ]);
                         }
                     } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning('Cloudinary product image upload error: ' . $e->getMessage());
+                        \Illuminate\Support\Facades\Log::warning('Product image optimization error: ' . $e->getMessage());
                     }
                 }
             }
@@ -217,13 +219,19 @@ class AdminProductController extends Controller
         if ($request->hasFile('images')) {
             $maxSort = $product->images()->max('sort_order') ?? 0;
             foreach ($request->file('images') as $i => $file) {
-                $uploadResult = $this->cloudinaryService->upload($file);
-                if ($uploadResult) {
-                    $product->images()->create([
-                        'image_url' => $uploadResult['url'],
-                        'cloudinary_public_id' => $uploadResult['public_id'],
-                        'sort_order' => $maxSort + $i + 1,
-                    ]);
+                if ($file && $file->isValid()) {
+                    try {
+                        $uploadResult = $this->imageOptimizationService->optimizeWebAsset($file, 'products');
+                        if ($uploadResult && !empty($uploadResult['url'])) {
+                            $product->images()->create([
+                                'image_url' => $uploadResult['url'],
+                                'cloudinary_public_id' => $uploadResult['cloudinary_public_id'] ?? null,
+                                'sort_order' => $maxSort + $i + 1,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Product image update optimization error: ' . $e->getMessage());
+                    }
                 }
             }
         }

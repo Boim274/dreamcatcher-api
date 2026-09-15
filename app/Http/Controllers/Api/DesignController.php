@@ -8,6 +8,7 @@ use App\Services\AIDesignService;
 use App\Services\AIQuotaService;
 use App\Services\DesignValidationService;
 use App\Services\CloudinaryService;
+use App\Services\ImageOptimizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -17,7 +18,8 @@ class DesignController extends Controller
         private AIDesignService $aiDesignService,
         private DesignValidationService $validationService,
         private CloudinaryService $cloudinaryService,
-        private AIQuotaService $aiQuotaService
+        private AIQuotaService $aiQuotaService,
+        private ImageOptimizationService $imageOptimizationService
     ) {}
 
     public function index(Request $request)
@@ -145,16 +147,16 @@ class DesignController extends Controller
 
         $user = $request->user();
         $file = $request->file('image');
-        $uploadResult = $this->cloudinaryService->upload($file);
+        $uploadResult = $this->imageOptimizationService->processProductionDesign($file, 'designs');
 
-        if (!$uploadResult) {
+        if (!$uploadResult || empty($uploadResult['image_url'])) {
             return response()->json([
                 'message' => 'Failed to upload design to storage.',
             ], 500);
         }
 
         $sablonType = $validated['sablon_type'] ?? null;
-        $validation = $this->validationService->validateFromUrl($uploadResult['url'], $sablonType);
+        $validation = $this->validationService->validateFromUrl($uploadResult['image_url'], $sablonType);
 
         $designType = !empty($validated['from_chat']) ? 'chat_upload' : 'uploaded';
 
@@ -163,8 +165,8 @@ class DesignController extends Controller
             'user_session' => $request->input('user_session'),
             'conversation_id' => $validated['conversation_id'] ?? null,
             'prompt' => $request->prompt ?? null,
-            'image_url' => $uploadResult['url'],
-            'cloudinary_public_id' => $uploadResult['public_id'],
+            'image_url' => $uploadResult['image_url'],
+            'cloudinary_public_id' => $uploadResult['cloudinary_public_id'] ?? null,
             'color_count' => $validation['color_count'],
             'has_gradient' => $validation['has_gradient'],
             'has_shadow' => $validation['has_shadow'],

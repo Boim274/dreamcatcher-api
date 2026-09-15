@@ -37,6 +37,8 @@ class Design extends Model
         'setting' => 'array',
     ];
 
+    protected $appends = ['thumbnail_url', 'preview_url'];
+
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
@@ -55,5 +57,59 @@ class Design extends Model
     public function children()
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    public function getThumbnailUrlAttribute(): string
+    {
+        $url = $this->image_url;
+        if (empty($url)) return '';
+
+        if (str_contains($url, 'res.cloudinary.com')) {
+            if (str_contains($url, '/image/upload/')) {
+                return str_replace('/image/upload/', '/image/upload/c_fill,w_250,h_250,g_auto,q_auto,f_auto/', $url);
+            }
+        }
+
+        if (str_contains($url, 'images.unsplash.com')) {
+            $base = preg_replace('/[?&]w=\d+/', '', $url);
+            $sep = str_contains($base, '?') ? '&' : '?';
+            return "{$base}{$sep}w=250&h=250&fit=crop&auto=format&q=75";
+        }
+
+        // Local thumb check
+        $thumbPath = preg_replace('/\.(png|jpg|jpeg|webp)$/i', '-thumb.webp', $url);
+        $fullPath = public_path(ltrim(str_replace('storage/', 'storage/', $thumbPath), '/'));
+        if (file_exists($fullPath)) {
+            return $thumbPath;
+        }
+
+        return $url;
+    }
+
+    public function getPreviewUrlAttribute(): string
+    {
+        $url = $this->image_url;
+        if (empty($url)) return '';
+
+        if (str_contains($url, 'res.cloudinary.com')) {
+            if (str_contains($url, '/image/upload/')) {
+                return str_replace('/image/upload/', '/image/upload/c_limit,w_800,q_auto,f_auto/', $url);
+            }
+        }
+
+        if (str_contains($url, 'images.unsplash.com')) {
+            $base = preg_replace('/[?&]w=\d+/', '', $url);
+            $sep = str_contains($base, '?') ? '&' : '?';
+            return "{$base}{$sep}w=800&auto=format&q=85";
+        }
+
+        // Local preview check
+        $prevPath = preg_replace('/\.(png|jpg|jpeg|webp)$/i', '-preview.webp', $url);
+        $fullPath = public_path(ltrim(str_replace('storage/', 'storage/', $prevPath), '/'));
+        if (file_exists($fullPath)) {
+            return $prevPath;
+        }
+
+        return $url;
     }
 }

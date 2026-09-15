@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Portfolio;
 use App\Models\Service;
 use App\Services\CloudinaryService;
+use App\Services\ImageOptimizationService;
 use Illuminate\Http\Request;
 
 class AdminPortfolioController extends Controller
 {
     public function __construct(
         private CloudinaryService $cloudinaryService,
+        private ImageOptimizationService $imageOptimizationService,
     ) {}
 
     public function index(Request $request)
@@ -56,9 +58,9 @@ class AdminPortfolioController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $uploadResult = $this->imageOptimizationService->optimizeWebAsset($request->file('image'), 'portfolios');
             $validated['image_url'] = $uploadResult['url'];
-            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
+            $validated['cloudinary_public_id'] = $uploadResult['cloudinary_public_id'] ?? null;
         }
 
         unset($validated['image']);
@@ -97,9 +99,9 @@ class AdminPortfolioController extends Controller
             if ($portfolio->cloudinary_public_id) {
                 $this->cloudinaryService->delete($portfolio->cloudinary_public_id);
             }
-            $uploadResult = $this->cloudinaryService->upload($request->file('image'));
+            $uploadResult = $this->imageOptimizationService->optimizeWebAsset($request->file('image'), 'portfolios');
             $validated['image_url'] = $uploadResult['url'];
-            $validated['cloudinary_public_id'] = $uploadResult['public_id'];
+            $validated['cloudinary_public_id'] = $uploadResult['cloudinary_public_id'] ?? null;
         }
 
         unset($validated['image']);

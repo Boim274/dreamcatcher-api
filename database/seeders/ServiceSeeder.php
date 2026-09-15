@@ -12,7 +12,7 @@ class ServiceSeeder extends Seeder
         $services = [
             [
                 'name' => 'Sablon Kaos',
-                'description' => 'Sablon kaos berkualitas tinggi dengan teknik DTG dan screen print. Cocok untuk desain custom dengan warna full color atau limited edition.',
+                'description' => 'Jasa sablon kaos custom berkualitas standar distro dengan teknik DTF High Definition dan Plastisol curing premium. Menggunakan bahan 100% Cotton Combed 24s/30s yang adem, halus, dan nyaman. Hasil cetak beresolusi tinggi, warna tajam, elastis, tidak mudah retak, dan tahan cuci berkali-kali. Melayani pemesanan satuan tanpa minimum order hingga partai besar untuk komunitas, event, dan brand clothing.',
                 'base_price' => 35000,
                 'price_per_unit' => null,
                 'minimum_order' => 1,
@@ -66,7 +66,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Printing Banner',
-                'description' => 'Cetak banner dengan kualitas tinggi. Tersedia berbagai ukuran dan bahan seperti flexi chinch, vinyl, dan fabric.',
+                'description' => 'Layanan cetak banner, spanduk, dan backdrop outdoor maupun indoor dengan mesin digital printing beresolusi tinggi. Menggunakan pilihan bahan Flexi Korea, Flexi China, Albatros, dan Vinyl tebal dengan tinta anti pudar yang tahan cuaca panas dan hujan. Sangat cocok untuk kebutuhan promosi bisnis, pameran, event perusahaan, seminar, dan branding outlet.',
                 'base_price' => 25000,
                 'price_per_unit' => null,
                 'minimum_order' => 1,
@@ -76,14 +76,14 @@ class ServiceSeeder extends Seeder
                 'pricing_config' => null,
                 'options_config' => json_encode([
                     'sizes' => ['60x160cm', '80x200cm', '100x250cm'],
-                    'materials' => ['Flexi Chinch', 'Vinyl', 'Fabric'],
+                    'materials' => ['Flexi China', 'Flexi Korea', 'Albatros', 'Vinyl', 'Fabric'],
                 ]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'Cetak Stiker',
-                'description' => 'Cetak stiker custom untuk berbagai kebutuhan. Tersedia pilihan bahan vinyl glossy, matte, dan transparan.',
+                'description' => 'Cetak stiker custom label produk dan merchandise dengan hasil potong presisi (kiss-cut / die-cut). Menggunakan bahan Vinyl Glossy, Vinyl Matte (Doff), Transparan, dan Hologram berkualitas waterproof yang tahan air, minyak, dan goresan. Dilengkapi laminasi pelindung ekstra, ideal untuk kemasan UMKM, label botol/makanan, stiker kendaraan, dan promosi komunitas.',
                 'base_price' => 5000,
                 'price_per_unit' => null,
                 'minimum_order' => 50,
@@ -92,7 +92,7 @@ class ServiceSeeder extends Seeder
                 'pricing_type' => 'flat',
                 'pricing_config' => null,
                 'options_config' => json_encode([
-                    'materials' => ['Vinyl Glossy', 'Vinyl Matte', 'Transparan'],
+                    'materials' => ['Vinyl Glossy', 'Vinyl Matte', 'Transparan', 'Hologram'],
                     'sizes' => ['5x5cm', '7x7cm', '10x10cm', 'Custom'],
                 ]),
                 'created_at' => now(),
@@ -100,7 +100,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Bordir',
-                'description' => 'Bordir komputer dengan hasil rapi dan profesional. Cocok untuk seragam perusahaan, komunitas, atau hadiah.',
+                'description' => 'Layanan bordir komputer modern berpresisi tinggi dengan kerapatan benang rapat dan jahitan kokoh. Menggunakan benang bordir berkualitas tinggi yang berkilau, kuat, dan tidak mudah terurai saat dicuci. Sangat ideal untuk logo seragam kerja pabrik/kantor, kemeja polo, jaket, hoodie, rompi, topi, serta patch emblem komunitas dengan tampilan mewah dan berkelas.',
                 'base_price' => 45000,
                 'price_per_unit' => null,
                 'minimum_order' => 6,
@@ -109,13 +109,18 @@ class ServiceSeeder extends Seeder
                 'pricing_type' => 'flat',
                 'pricing_config' => null,
                 'options_config' => json_encode([
-                    'positions' => ['Dada Kiri', 'Dada Kanan', 'Punggung', 'Lengan Kiri', 'Lengan Kanan'],
+                    'positions' => ['Dada Kiri', 'Dada Kanan', 'Punggung', 'Lengan Kiri', 'Lengan Kanan', 'Topi Depan'],
                 ]),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
         ];
 
-        DB::table('services')->insert($services);
+        foreach ($services as $service) {
+            DB::table('services')->updateOrInsert(
+                ['name' => $service['name']],
+                $service
+            );
+        }
     }
 }
