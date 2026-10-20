@@ -33,7 +33,7 @@ class AdminTestimonialController extends Controller
             $query->where('rating', '>=', (int) $request->min_rating);
         }
 
-        $testimonials = $query->orderBy('sort_order')->orderByDesc('created_at')->paginate(15);
+        $testimonials = $query->latest()->paginate(15);
 
         return response()->json([
             'testimonials' => $testimonials,

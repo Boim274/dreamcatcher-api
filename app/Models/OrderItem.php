@@ -15,6 +15,7 @@ class OrderItem extends Model
         'product_id',
         'variant_label',
         'product_name',
+        'shirt_model',
         'size',
         'quantity',
         'unit_price',

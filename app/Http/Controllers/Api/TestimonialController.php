@@ -17,7 +17,7 @@ class TestimonialController extends Controller
     public function index()
     {
         $testimonials = Testimonial::active()
-            ->ordered()
+            ->latest()
             ->get();
 
         return response()->json([
@@ -43,6 +43,7 @@ class TestimonialController extends Controller
     {
         $validated = $request->validate([
             'order_id' => 'required|exists:orders,id',
+            'customer_name' => 'nullable|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -87,19 +88,25 @@ class TestimonialController extends Controller
                 $imageUrl = $request->input('image_url');
             }
 
+            $customerName = $request->input('customer_name') 
+                ?? $order->customer_name 
+                ?? $order->user?->name 
+                ?? $existing->customer_name;
+
             $existing->update([
                 'user_id' => $userId ?? $existing->user_id,
                 'order_id' => $order->id,
-                'customer_name' => $order->customer_name ?: $existing->customer_name,
+                'customer_name' => $customerName,
                 'rating' => $validated['rating'],
                 'review' => $validated['review'] ?? null,
                 'image_url' => $imageUrl,
                 'cloudinary_public_id' => $cloudinaryPublicId,
-                'is_active' => false,
+                'is_active' => true,
+                'created_at' => now(),
             ]);
 
             return response()->json([
-                'message' => 'Testimoni Anda berhasil diperbarui dan akan ditinjau kembali oleh admin.',
+                'message' => 'Testimoni Anda berhasil diperbarui dan telah aktif.',
                 'testimonial' => $existing->fresh(),
                 'is_updated' => true,
             ], 200);
@@ -118,19 +125,24 @@ class TestimonialController extends Controller
             $imageUrl = $order->user?->avatar ?? $request->input('image_url');
         }
 
+        $customerName = $request->input('customer_name') 
+            ?? $order->customer_name 
+            ?? $order->user?->name 
+            ?? 'Pelanggan';
+
         $testimonial = Testimonial::create([
             'user_id' => $userId,
             'order_id' => $order->id,
-            'customer_name' => $order->customer_name,
+            'customer_name' => $customerName,
             'rating' => $validated['rating'],
             'review' => $validated['review'] ?? null,
             'image_url' => $imageUrl,
             'cloudinary_public_id' => $cloudinaryPublicId,
-            'is_active' => false,
+            'is_active' => true,
         ]);
 
         return response()->json([
-            'message' => 'Terima kasih! Testimoni Anda akan ditinjau oleh admin sebelum tampil di halaman utama.',
+            'message' => 'Terima kasih! Testimoni Anda telah berhasil dibuat dan langsung aktif.',
             'testimonial' => $testimonial,
             'is_updated' => false,
         ], 201);
@@ -143,6 +155,7 @@ class TestimonialController extends Controller
 
         $validated = $request->validate([
             'order_id' => 'nullable|exists:orders,id',
+            'customer_name' => 'nullable|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -162,18 +175,25 @@ class TestimonialController extends Controller
             $imageUrl = $testimonial->order?->user?->avatar ?? $user?->avatar ?? $request->input('image_url');
         }
 
+        $customerName = $validated['customer_name']
+            ?? $testimonial->order?->customer_name
+            ?? $user?->name
+            ?? $testimonial->customer_name;
+
         $testimonial->update([
             'order_id' => $validated['order_id'] ?? $testimonial->order_id,
             'user_id' => $testimonial->user_id ?? $user?->id ?? $testimonial->order?->user_id,
+            'customer_name' => $customerName,
             'rating' => $validated['rating'],
             'review' => $validated['review'] ?? null,
             'image_url' => $imageUrl,
             'cloudinary_public_id' => $cloudinaryPublicId,
-            'is_active' => false,
+            'is_active' => true,
+            'created_at' => now(),
         ]);
 
         return response()->json([
-            'message' => 'Testimoni berhasil diperbarui dan akan ditinjau kembali oleh admin.',
+            'message' => 'Testimoni berhasil diperbarui dan langsung aktif.',
             'testimonial' => $testimonial->fresh(),
         ]);
     }

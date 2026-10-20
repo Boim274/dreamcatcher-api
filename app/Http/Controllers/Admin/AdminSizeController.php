@@ -24,7 +24,8 @@ class AdminSizeController extends Controller
             $query->where('service_id', $request->service_id);
         }
 
-        $sizes = $query->orderBy('sort_order')->orderBy('name')->paginate(15);
+        $perPage = (int) $request->input('per_page', 50);
+        $sizes = $query->orderBy('sort_order')->orderBy('name')->paginate($perPage);
 
         return response()->json([
             'sizes' => $sizes,

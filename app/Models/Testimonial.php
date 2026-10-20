@@ -46,6 +46,6 @@ class Testimonial extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderBy('sort_order')->orderByDesc('created_at');
+        return $query->latest();
     }
 }

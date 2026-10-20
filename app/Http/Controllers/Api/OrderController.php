@@ -25,7 +25,10 @@ class OrderController extends Controller
             'description' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.service_id' => 'required|exists:services,id',
+            'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.product_name' => 'nullable|string|max:255',
+            'items.*.shirt_model' => 'nullable|string|max:100',
+            'items.*.variant_label' => 'nullable|string|max:255',
             'items.*.size' => 'nullable|string|max:50',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
@@ -76,10 +79,22 @@ class OrderController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
+                $variantParts = [];
+                if (!empty($item['shirt_model'])) {
+                    $variantParts[] = 'Model: ' . $item['shirt_model'];
+                }
+                if (!empty($item['size'])) {
+                    $variantParts[] = 'Size: ' . $item['size'];
+                }
+                $variantLabel = $item['variant_label'] ?? (!empty($variantParts) ? implode(', ', $variantParts) : null);
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'service_id' => $item['service_id'],
+                    'product_id' => $item['product_id'] ?? null,
                     'product_name' => $item['product_name'] ?? $item['service_id'],
+                    'shirt_model' => $item['shirt_model'] ?? null,
+                    'variant_label' => $variantLabel,
                     'size' => $item['size'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
