@@ -66,7 +66,7 @@ class DatabaseSeeder extends Seeder
                         'S' => 0,
                         'M' => 0,
                         'L' => 0,
-                        'XL' => 5000,
+                        'XL' => 0,
                         'XXL' => 10000,
                     ],
                     'max_print_areas' => 2,
