@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ProductOrderController extends Controller
@@ -76,45 +77,56 @@ class ProductOrderController extends Controller
         $shipping = $validated['delivery_method'] === 'delivery' ? $shippingCost : 0;
         $total = $subtotal + $shipping;
 
-        $order = Order::create([
-            'order_code' => 'PRD-' . strtoupper(Str::random(8)),
-            'user_id' => $user->id,
-            'customer_name' => $validated['customer_name'],
-            'customer_email' => $validated['customer_email'],
-            'phone' => $validated['phone'],
-            'address' => $validated['address'] ?? '',
-            'delivery_method' => $validated['delivery_method'],
-            'subtotal' => $subtotal,
-            'shipping_cost' => $shipping,
-            'total_price' => $total,
-            'notes' => $validated['notes'] ?? null,
-            'status' => 'waiting_payment',
-            'payment_status' => 'pending',
-            'paid_amount' => 0,
-            'remaining_amount' => $total,
-        ]);
+        DB::beginTransaction();
 
-        foreach ($orderItems as $item) {
-            $orderItem = $order->items()->create($item);
+        try {
+            $order = Order::create([
+                'order_code' => 'PRD-' . strtoupper(Str::random(8)),
+                'user_id' => $user->id,
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'phone' => $validated['phone'],
+                'address' => $validated['address'] ?? '',
+                'delivery_method' => $validated['delivery_method'],
+                'subtotal' => $subtotal,
+                'shipping_cost' => $shipping,
+                'total_price' => $total,
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'waiting_payment',
+                'payment_status' => 'pending',
+                'paid_amount' => 0,
+                'remaining_amount' => $total,
+            ]);
 
-            $product = Product::find($item['product_id']);
-            if ($product) {
-                $product->decrement('stock', $item['quantity']);
-                if (!empty($item['size'])) {
-                    $product->sizes()->where('name', $item['size'])->decrement('stock', $item['quantity']);
+            foreach ($orderItems as $item) {
+                $orderItem = $order->items()->create($item);
+
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    $product->decrement('stock', $item['quantity']);
+                    if (!empty($item['size'])) {
+                        $product->sizes()->where('name', $item['size'])->decrement('stock', $item['quantity']);
+                    }
                 }
             }
+
+            $order->statusHistory()->create([
+                'status' => 'pending',
+                'notes' => 'Product order created',
+                'created_by' => 'user',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Order created successfully',
+                'order' => $order->load('items'),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create product order: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $order->statusHistory()->create([
-            'status' => 'pending',
-            'notes' => 'Product order created',
-            'created_by' => $user->id,
-        ]);
-
-        return response()->json([
-            'message' => 'Order created successfully',
-            'order' => $order->load('items'),
-        ], 201);
     }
 }

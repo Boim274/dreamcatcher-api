@@ -52,12 +52,19 @@ class TestimonialController extends Controller
 
         $order = Order::with('user')->findOrFail($validated['order_id']);
 
+        $user = $request->user('sanctum') ?? $request->user();
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only review your own orders.',
+            ], 403);
+        }
+
         if ($order->status !== 'completed') {
             return response()->json(['message' => 'Pesanan belum selesai'], 400);
         }
 
-        // Identify user_id from auth user or order's owner
-        $userId = $request->user('sanctum')?->id ?? $request->user()?->id ?? $order->user_id;
+        // Identify user_id from auth user
+        $userId = $user->id;
 
         // Check if user already has an existing testimonial (1 User = 1 Testimonial)
         $existing = null;
@@ -152,6 +159,12 @@ class TestimonialController extends Controller
     {
         $testimonial = Testimonial::with('order.user')->findOrFail($id);
         $user = $request->user('sanctum') ?? $request->user();
+
+        if (!$user || (!$user->isAdmin() && (int)$testimonial->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only update your own testimonial.',
+            ], 403);
+        }
 
         $validated = $request->validate([
             'order_id' => 'nullable|exists:orders,id',

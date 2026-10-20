@@ -29,6 +29,13 @@ class PaymentController extends Controller
 
         $order = Order::findOrFail($validated['order_id']);
 
+        $user = $request->user();
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only upload payments for your own orders.',
+            ], 403);
+        }
+
         $paymentProofUrl = null;
         $cloudinaryPublicId = null;
         if ($request->hasFile('payment_proof')) {
@@ -59,8 +66,17 @@ class PaymentController extends Controller
         ], 201);
     }
 
-    public function show($orderId)
+    public function show(Request $request, $orderId)
     {
+        $order = Order::findOrFail($orderId);
+
+        $user = $request->user();
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only view payments for your own orders.',
+            ], 403);
+        }
+
         $payments = Payment::where('order_id', $orderId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -70,9 +86,16 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $payment = Payment::findOrFail($id);
+        $payment = Payment::with('order')->findOrFail($id);
+
+        $user = $request->user();
+        if (!$user || (!$user->isAdmin() && (int)$payment->order?->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only delete payments for your own orders.',
+            ], 403);
+        }
 
         if ($payment->cloudinary_public_id) {
             $this->cloudinaryService->delete($payment->cloudinary_public_id);

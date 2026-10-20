@@ -85,7 +85,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('orders')->group(function () {
         Route::post('/', [OrderController::class, 'store'])->middleware('auth:sanctum');
         Route::get('track', [OrderController::class, 'track']);
-        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode']);
+        Route::get('by-code/{orderCode}', [OrderController::class, 'showByCode'])->middleware('auth:sanctum');
         Route::get('my-stats', [OrderController::class, 'myStats'])->middleware('auth:sanctum');
         Route::get('my-orders', [OrderController::class, 'index'])->middleware('auth:sanctum');
         Route::get('/', [OrderController::class, 'index'])->middleware('auth:sanctum');
@@ -93,7 +93,7 @@ Route::prefix('v1')->group(function () {
         Route::post('{id}/request-cancel', [OrderController::class, 'requestCancel'])->middleware('auth:sanctum');
     });
 
-    Route::prefix('payments')->group(function () {
+    Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
         Route::post('upload', [PaymentController::class, 'upload']);
         Route::get('{orderId}', [PaymentController::class, 'show']);
         Route::delete('{id}', [PaymentController::class, 'destroy']);
@@ -111,8 +111,8 @@ Route::prefix('v1')->group(function () {
     Route::get('colors', [ColorController::class, 'index']);
     Route::get('testimonials/my', [TestimonialController::class, 'myTestimonial'])->middleware('auth:sanctum');
     Route::get('testimonials', [TestimonialController::class, 'index']);
-    Route::post('testimonials', [TestimonialController::class, 'store']);
-    Route::put('testimonials/{id}', [TestimonialController::class, 'update']);
+    Route::post('testimonials', [TestimonialController::class, 'store'])->middleware('auth:sanctum');
+    Route::put('testimonials/{id}', [TestimonialController::class, 'update'])->middleware('auth:sanctum');
     Route::get('sizes', [SizeController::class, 'index']);
     Route::get('settings', [SettingController::class, 'index']);
     Route::get('settings/{group}', [SettingController::class, 'group']);

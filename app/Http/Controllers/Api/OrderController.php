@@ -157,15 +157,7 @@ class OrderController extends Controller
         $user = $request->user();
 
         $query = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial'])
-            ->where(function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-                if (!empty($user->email)) {
-                    $q->orWhere('customer_email', $user->email);
-                }
-                if (!empty($user->phone)) {
-                    $q->orWhere('phone', $user->phone);
-                }
-            });
+            ->where('user_id', $user->id);
 
         if ($request->has('status')) {
             $statuses = $request->input('status');
@@ -226,15 +218,7 @@ class OrderController extends Controller
             'cancel_requested',
         ];
 
-        $baseQuery = Order::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-            if (!empty($user->email)) {
-                $q->orWhere('customer_email', $user->email);
-            }
-            if (!empty($user->phone)) {
-                $q->orWhere('phone', $user->phone);
-            }
-        });
+        $baseQuery = Order::where('user_id', $user->id);
 
         $total = (clone $baseQuery)->count();
         $active = (clone $baseQuery)->whereIn('status', $activeStatuses)->count();
@@ -257,7 +241,7 @@ class OrderController extends Controller
             ->findOrFail($id);
 
         $user = $request->user();
-        if ($user && !$user->isAdmin() && $order->user_id !== $user->id) {
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
             return response()->json([
                 'message' => 'Unauthorized. You can only view your own orders.',
             ], 403);
@@ -272,7 +256,7 @@ class OrderController extends Controller
         ]);
     }
 
-    public function showByCode($orderCode)
+    public function showByCode(Request $request, $orderCode)
     {
         $order = Order::with(['items.service', 'items.design', 'items.product.images', 'payments', 'testimonial', 'user'])
             ->where('order_code', $orderCode)
@@ -282,6 +266,13 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Order not found',
             ], 404);
+        }
+
+        $user = $request->user();
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only view your own orders.',
+            ], 403);
         }
 
         $userTestimonial = $order->user_id ? Testimonial::where('user_id', $order->user_id)->first() : null;
@@ -298,7 +289,7 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         $user = $request->user();
-        if (!$user || ($order->user_id !== $user->id && !$user->isAdmin())) {
+        if (!$user || (!$user->isAdmin() && (int)$order->user_id !== (int)$user->id)) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 403);
