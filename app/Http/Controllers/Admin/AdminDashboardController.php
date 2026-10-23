@@ -84,9 +84,16 @@ class AdminDashboardController extends Controller
         $periodOrdersList = (clone $baseOrderQuery)
             ->with(['items.service', 'user'])
             ->orderBy('created_at', 'desc')
-            ->take(100)
+            ->take(500)
             ->get()
             ->map(function ($o) {
+                $itemsSummary = $o->items->map(function ($it) {
+                    $name = $it->service->name ?? $it->product_name ?? 'Item';
+                    if ($it->shirt_model) $name .= " - {$it->shirt_model}";
+                    if ($it->size) $name .= " ({$it->size})";
+                    return "{$it->quantity}x {$name}";
+                })->implode('; ');
+
                 return [
                     'id' => $o->id,
                     'order_code' => $o->order_code,
@@ -95,10 +102,13 @@ class AdminDashboardController extends Controller
                     'phone' => $o->phone,
                     'delivery_method' => $o->delivery_method,
                     'total_price' => $o->total_price,
+                    'subtotal' => $o->subtotal,
+                    'shipping_cost' => $o->shipping_cost,
                     'status' => $o->status,
                     'payment_status' => $o->payment_status,
                     'created_at' => $o->created_at->format('Y-m-d H:i:s'),
                     'items_count' => $o->items->sum('quantity') ?: 1,
+                    'items_summary' => $itemsSummary ?: '-',
                 ];
             });
 
