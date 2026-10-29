@@ -31,7 +31,8 @@ class CloudinaryService
         try {
             $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
 
-            $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
+            $response = Http::timeout(60)
+                ->withBasicAuth($this->apiKey, $this->apiSecret)
                 ->post($this->uploadUrl, [
                     'file' => $base64,
                     'folder' => 'dreamcatcher',
@@ -63,7 +64,8 @@ class CloudinaryService
             $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->buffer($content) ?: 'image/png';
             $base64 = 'data:' . $mimeType . ';base64,' . base64_encode($content);
 
-            $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
+            $response = Http::timeout(60)
+                ->withBasicAuth($this->apiKey, $this->apiSecret)
                 ->post($this->uploadUrl, [
                     'file' => $base64,
                     'public_id' => pathinfo($filename, PATHINFO_FILENAME),

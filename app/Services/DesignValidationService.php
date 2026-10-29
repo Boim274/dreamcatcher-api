@@ -25,7 +25,23 @@ class DesignValidationService
     public function validateFromUrl(string $url, ?string $sablonType = null): array
     {
         if (str_starts_with($url, 'data:') || !str_starts_with($url, 'http')) {
-            return $this->validate($url, $sablonType);
+            $localPath = $url;
+            if (!file_exists($localPath)) {
+                if (str_starts_with($localPath, 'storage/')) {
+                    $relative = substr($localPath, 8);
+                    $diskPath = \Illuminate\Support\Facades\Storage::disk('public')->path($relative);
+                    if (file_exists($diskPath)) {
+                        $localPath = $diskPath;
+                    }
+                }
+                if (!file_exists($localPath)) {
+                    $pubPath = public_path($url);
+                    if (file_exists($pubPath)) {
+                        $localPath = $pubPath;
+                    }
+                }
+            }
+            return $this->validate($localPath, $sablonType);
         }
 
         $tempPath = null;
@@ -71,8 +87,8 @@ class DesignValidationService
             }
 
             $fileSize = filesize($imagePath);
-            if ($fileSize > 5 * 1024 * 1024) {
-                return $this->failValidation('Ukuran file maksimal 5MB');
+            if ($fileSize > 10 * 1024 * 1024) {
+                return $this->failValidation('Ukuran file maksimal 10MB');
             }
 
             $extension = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));

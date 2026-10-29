@@ -33,7 +33,7 @@ class ShirtModelSeeder extends Seeder
 
         $pShort->name = 'Kaos Lengan Pendek';
         $pShort->description = 'Kaos lengan pendek klasik standar distro. Terbuat dari katun combed 30s/24s premium yang adem, halus, nyaman, dan sangat ideal untuk segala teknik sablon presisi.';
-        $pShort->base_price = 75000;
+        $pShort->base_price = 60000;
         $pShort->stock = 100;
         $pShort->is_active = true;
         $pShort->sort_order = 1;
@@ -55,8 +55,8 @@ class ShirtModelSeeder extends Seeder
         }
 
         $pLong->name = 'Kaos Lengan Panjang';
-        $pLong->description = 'Kaos lengan panjang dengan rib manset pergelangan tangan elastis. Memberikan kenyamanan ekstra, perlindungan dari sinar matahari, serta tampilan berkelas dan serbaguna.';
-        $pLong->base_price = 80000;
+        $pLong->description = 'Kaos lengan panjang yang nyaman digunakan untuk berbagai aktivitas, baik sehari-hari, bekerja, maupun kegiatan komunitas. Dibuat dengan bahan berkualitas yang lembut dan nyaman di kulit, serta jahitan rapi untuk memberikan hasil yang maksimal.';
+        $pLong->base_price = 67000;
         $pLong->stock = 100;
         $pLong->is_active = true;
         $pLong->sort_order = 2;
@@ -115,10 +115,10 @@ class ShirtModelSeeder extends Seeder
                     'product_id' => $pLong->id,
                     'name' => 'Kaos Lengan Panjang',
                     'name_en' => 'Long Sleeve T-Shirt',
-                    'description' => 'Model kaos lengan panjang dengan rib manset pergelangan tangan elastis. Memberikan kenyamanan ekstra, proteksi dari sinar matahari, dan tampilan berkelas.',
+                    'description' => 'Kaos lengan panjang yang nyaman digunakan untuk berbagai aktivitas, baik sehari-hari, bekerja, maupun kegiatan komunitas. Dibuat dengan bahan berkualitas yang lembut dan nyaman di kulit, serta jahitan rapi untuk memberikan hasil yang maksimal.',
                     'image' => '/products/kaos-lengan-panjang.jpg',
                     'base_price' => (float) $pLong->base_price,
-                    'surcharge' => 5000,
+                    'surcharge' => 7000,
                     'is_active' => true,
                 ],
             ];

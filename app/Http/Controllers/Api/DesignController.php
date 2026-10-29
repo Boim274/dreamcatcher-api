@@ -139,7 +139,7 @@ class DesignController extends Controller
     public function upload(Request $request)
     {
         $validated = $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
             'conversation_id' => 'nullable|integer',
             'from_chat' => 'nullable|boolean',
             'sablon_type' => 'nullable|string|max:50',
