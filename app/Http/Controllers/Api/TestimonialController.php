@@ -100,12 +100,14 @@ class TestimonialController extends Controller
                 ?? $order->user?->name 
                 ?? $existing->customer_name;
 
+            $cleanedReview = $this->cleanReview($validated['review'] ?? null);
+
             $existing->update([
                 'user_id' => $userId ?? $existing->user_id,
                 'order_id' => $order->id,
                 'customer_name' => $customerName,
                 'rating' => $validated['rating'],
-                'review' => $validated['review'] ?? null,
+                'review' => $cleanedReview,
                 'image_url' => $imageUrl,
                 'cloudinary_public_id' => $cloudinaryPublicId,
                 'is_active' => true,
@@ -137,12 +139,14 @@ class TestimonialController extends Controller
             ?? $order->user?->name 
             ?? 'Pelanggan';
 
+        $cleanedReview = $this->cleanReview($validated['review'] ?? null);
+
         $testimonial = Testimonial::create([
             'user_id' => $userId,
             'order_id' => $order->id,
             'customer_name' => $customerName,
             'rating' => $validated['rating'],
-            'review' => $validated['review'] ?? null,
+            'review' => $cleanedReview,
             'image_url' => $imageUrl,
             'cloudinary_public_id' => $cloudinaryPublicId,
             'is_active' => true,
@@ -193,12 +197,14 @@ class TestimonialController extends Controller
             ?? $user?->name
             ?? $testimonial->customer_name;
 
+        $cleanedReview = $this->cleanReview($validated['review'] ?? null);
+
         $testimonial->update([
             'order_id' => $validated['order_id'] ?? $testimonial->order_id,
             'user_id' => $testimonial->user_id ?? $user?->id ?? $testimonial->order?->user_id,
             'customer_name' => $customerName,
             'rating' => $validated['rating'],
-            'review' => $validated['review'] ?? null,
+            'review' => $cleanedReview,
             'image_url' => $imageUrl,
             'cloudinary_public_id' => $cloudinaryPublicId,
             'is_active' => true,
@@ -209,6 +215,13 @@ class TestimonialController extends Controller
             'message' => 'Testimoni berhasil diperbarui dan langsung aktif.',
             'testimonial' => $testimonial->fresh(),
         ]);
+    }
+
+    private function cleanReview(?string $review): ?string
+    {
+        if (!$review) return null;
+        $cleaned = preg_replace('/^testimoni\s+update(\s+dari\s+order\s*\d*)?\s*:\s*/iu', '', trim($review));
+        return $cleaned ?: null;
     }
 }
 
